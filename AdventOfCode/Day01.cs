@@ -40,18 +40,18 @@ namespace AdventOfCode
             return totalFuel;
         }
 
-        private int CalculateFuel()
+        private Answer CalculateFuel()
         {
             return _input.Select(CalculateSingleFuel).Sum();
         }
 
-        private int CalculateCompoundFuel()
+        private Answer CalculateCompoundFuel()
         {
             return _input.Select(CalculateSingleCompoundFuel).Sum();
         }
 
-        public override ValueTask<string> Solve_1() => new($"{CalculateFuel()}");
+        public override ValueTask<string> Solve_1() => new(CalculateFuel());
 
-        public override ValueTask<string> Solve_2() => new($"{CalculateCompoundFuel()}");
+        public override ValueTask<string> Solve_2() => new(CalculateCompoundFuel());
     }
 }

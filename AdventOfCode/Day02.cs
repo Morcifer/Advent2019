@@ -60,17 +60,18 @@ namespace AdventOfCode
 
                         break;
                     case OpCode.Terminate:
+                        // ReSharper disable once RedundantAssignment
                         instructionPointer += 1;
                         return program[0];
                     default:
                         throw new ArgumentException("Invalid value for OpCode", nameof(OpCode));
-                };
+                }
             }
 
             return -1;
         }
 
-        private int Program1202()
+        private Answer Program1202()
         {
             var program = _input.ToList();
             
@@ -83,11 +84,11 @@ namespace AdventOfCode
             return RunProgram(program);
         }
 
-        private int FindNounAndVerb()
+        private Answer FindNounAndVerb()
         {
-            for (int noun = 0; noun < _input.Count; noun++)
+            for (var noun = 0; noun < _input.Count; noun++)
             {
-                for (int verb = 0; verb < _input.Count; verb++)
+                for (var verb = 0; verb < _input.Count; verb++)
                 {
                     var program = _input.ToList();
 
@@ -102,7 +103,8 @@ namespace AdventOfCode
                             return 100 * noun + verb;
                         }
                     }
-                    catch (Exception e)
+                    // ReSharper disable once EmptyGeneralCatchClause
+                    catch (Exception)
                     {
                     }
                 }
@@ -112,8 +114,8 @@ namespace AdventOfCode
         }
 
 
-        public override ValueTask<string> Solve_1() => new($"{Program1202()}");
+        public override ValueTask<string> Solve_1() => new(Program1202());
 
-        public override ValueTask<string> Solve_2() => new($"{FindNounAndVerb()}");
+        public override ValueTask<string> Solve_2() => new(FindNounAndVerb());
     }
 }
