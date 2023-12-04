@@ -6,6 +6,10 @@
         Multiply = 2,
         Store = 3,
         Output = 4,
+        JumpIfTrue = 5,
+        JumpIfFalse = 6,
+        LessThan = 7,
+        Equals = 8,
         Terminate = 99,
     }
 
@@ -81,6 +85,34 @@
                         instructionPointer += 1;
                         return outputs;
 
+                    case OpCode.JumpIfTrue:
+                        parameter1 = GetParameter(program, instructionPointer, 1, code);
+                        parameter2 = GetParameter(program, instructionPointer, 2, code);
+
+                        instructionPointer = parameter1 != 0  ? parameter2 : instructionPointer + 3;
+                        break;
+                    case OpCode.JumpIfFalse:
+                        parameter1 = GetParameter(program, instructionPointer, 1, code);
+                        parameter2 = GetParameter(program, instructionPointer, 2, code);
+
+                        instructionPointer = parameter1 == 0 ? parameter2 : instructionPointer + 3;
+                        break;
+                    case OpCode.LessThan:
+                        parameter1 = GetParameter(program, instructionPointer, 1, code);
+                        parameter2 = GetParameter(program, instructionPointer, 2, code);
+                        parameter3 = program[instructionPointer + 3];
+
+                        program[parameter3] = parameter1 < parameter2 ? 1 : 0;
+                        instructionPointer += 4;
+                        break;
+                    case OpCode.Equals:
+                        parameter1 = GetParameter(program, instructionPointer, 1, code);
+                        parameter2 = GetParameter(program, instructionPointer, 2, code);
+                        parameter3 = program[instructionPointer + 3];
+
+                        program[parameter3] = parameter1 == parameter2 ? 1 : 0;
+                        instructionPointer += 4;
+                        break;
                     default:
                         throw new ArgumentException("Invalid value for OpCode", nameof(OpCode));
                 }

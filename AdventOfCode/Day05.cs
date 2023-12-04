@@ -33,7 +33,9 @@ namespace AdventOfCode
 
         private Answer FindNounAndVerb()
         {
-            return -1;
+            var program = _input.ToList();
+            var output = Computer.RunProgram(program, 5);
+            return output[^1];
         }
 
         public override ValueTask<string> Solve_1() => new(GetDiagnosticsCode());
