@@ -4,13 +4,6 @@
 [assembly: InternalsVisibleTo("AdventOfCode.Tests")]
 namespace AdventOfCode
 {
-    public enum OpCode
-    {
-        Add = 1,
-        Multiply = 2,
-        Terminate = 99,
-    }
-
     public sealed class Day02 : BaseTestableDay
     {
         private readonly List<int> _input;
@@ -31,46 +24,6 @@ namespace AdventOfCode
                 .ToList();
         }
 
-        private int RunProgram(List<int> program)
-        {
-            var instructionPointer = 0;
-
-            while (instructionPointer < program.Count)
-            {
-                int parameter1, parameter2, parameter3;
-
-                switch ((OpCode)program[instructionPointer])
-                {
-                    case OpCode.Add:
-                        parameter1 = program[instructionPointer + 1];
-                        parameter2 = program[instructionPointer + 2];
-                        parameter3 = program[instructionPointer + 3];
-
-                        program[parameter3] = program[parameter1] + program[parameter2];
-                        instructionPointer += 4;
-
-                        break;
-                    case OpCode.Multiply:
-                        parameter1 = program[instructionPointer + 1];
-                        parameter2 = program[instructionPointer + 2];
-                        parameter3 = program[instructionPointer + 3];
-
-                        program[parameter3] = program[parameter1] * program[parameter2]; 
-                        instructionPointer += 4;
-
-                        break;
-                    case OpCode.Terminate:
-                        // ReSharper disable once RedundantAssignment
-                        instructionPointer += 1;
-                        return program[0];
-                    default:
-                        throw new ArgumentException("Invalid value for OpCode", nameof(OpCode));
-                }
-            }
-
-            return -1;
-        }
-
         private Answer Program1202()
         {
             var program = _input.ToList();
@@ -81,7 +34,7 @@ namespace AdventOfCode
                 program[2] = 2;
             }
 
-            return RunProgram(program);
+            return Computer.RunProgram(program);
         }
 
         private Answer FindNounAndVerb()
@@ -97,7 +50,7 @@ namespace AdventOfCode
 
                     try
                     {
-                        var result = RunProgram(program);
+                        var result = Computer.RunProgram(program);
                         if (result == 19690720)
                         {
                             return 100 * noun + verb;
