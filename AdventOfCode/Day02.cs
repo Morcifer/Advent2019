@@ -33,8 +33,8 @@ namespace AdventOfCode
                 program[1] = 12;
                 program[2] = 2;
             }
-
-            return Computer.RunProgram(program);
+            Computer.RunProgram(program, -1);
+            return program[0];
         }
 
         private Answer FindNounAndVerb()
@@ -50,10 +50,11 @@ namespace AdventOfCode
 
                     try
                     {
-                        var result = Computer.RunProgram(program);
-                        if (result == 19690720)
+                        Computer.RunProgram(program, -1);
+
+                        if (program[0] == 19690720)
                         {
-                            return 100 * noun + verb;
+                            return (100 * noun) + verb;
                         }
                     }
                     // ReSharper disable once EmptyGeneralCatchClause

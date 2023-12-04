@@ -5,6 +5,7 @@
 
 # Real ignore list (for my own files)
 /AdventOfCode/Inputs/*
+/.editorconfig
 
 # User-specific files
 *.user
