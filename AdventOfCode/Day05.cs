@@ -24,14 +24,14 @@ public sealed class Day05 : BaseTestableDay
     {
         var program = _input.ToList();
         var computer = new Computer(program, new List<int>() { 1 });
-        return computer.RunProgram(toTermination: true)[^1];
+        return computer.RunProgramToTermination()[^1];
     }
 
     private Answer FindNounAndVerb()
     {
         var program = _input.ToList();
         var computer = new Computer(program, new List<int>() { 5 });
-        return computer.RunProgram(toTermination: true)[^1];
+        return computer.RunProgramToTermination()[^1];
     }
 
     public override ValueTask<string> Solve_1() => new(GetDiagnosticsCode());

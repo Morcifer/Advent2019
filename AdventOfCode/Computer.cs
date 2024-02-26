@@ -23,7 +23,6 @@ public class Computer
 {
     public List<int> Program { get; private set; }
     private List<int> _inputs;
-    private List<int> _outputs;
 
     private int _instructionPointer;
     private int _inputPointer;
@@ -32,7 +31,6 @@ public class Computer
     {
         this.Program = program.ToList();
         this._inputs = inputs;
-        this._outputs = new List<int>();
 
         this._instructionPointer = 0;
         this._inputPointer = 0;
@@ -50,7 +48,23 @@ public class Computer
         };
     }
 
-    public List<int> RunProgram(bool toTermination)
+    public List<int> RunProgramToTermination()
+    {
+        var outputs = new List<int>();
+        while (true)
+        {
+            var output = this.RunProgram();
+
+            if (!output.HasValue)
+            {
+                return outputs;
+            }
+
+            outputs.Add(output.Value);
+        }
+    }
+
+    public int? RunProgram()
     {
         while (_instructionPointer < Program.Count)
         {
@@ -90,21 +104,14 @@ public class Computer
                 case OpCode.Output:
                     parameter1 = GetParameter(1, code);
 
-                    _outputs.Add(parameter1);
-
                     _instructionPointer += 2;
 
-                    if (!toTermination)
-                    {
-                        return _outputs;
-                    }
-
-                    break;
+                    return parameter1;
 
                 case OpCode.Terminate:
                     // ReSharper disable once RedundantAssignment
                     _instructionPointer += 1;
-                    return _outputs;
+                    return null;
 
                 case OpCode.JumpIfTrue:
                     parameter1 = GetParameter(1, code);

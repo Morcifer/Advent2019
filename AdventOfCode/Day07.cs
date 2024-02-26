@@ -27,7 +27,6 @@ public sealed class Day07 : BaseTestableDay
         var signal = 0;
 
         var inputs = thrusters.Select(i => new List<int>() { i }).ToList();
-        var outputs = thrusters.Select(i => new List<int>()).ToList();
         var computers = thrusters.Select((_, index) => new Computer(program, inputs[index])).ToList();
 
         while (true)
@@ -36,16 +35,14 @@ public sealed class Day07 : BaseTestableDay
             {
                 inputs[amplifier].Add(signal);
 
-                var newOutputs = computers[amplifier].RunProgram(toTermination: false);
+                var output = computers[amplifier].RunProgram();
 
-                if (newOutputs.Count == outputs[amplifier].Count) // Termination...
+                if (!output.HasValue) // Termination...
                 {
                     return signal;
                 }
 
-                outputs[amplifier] = newOutputs.ToList();
-
-                signal = newOutputs[^1];
+                signal = output.Value;
             }
 
             if (stopAfterOneGo)
