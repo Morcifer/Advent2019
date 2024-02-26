@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+﻿using System.Diagnostics;
 
 namespace AdventOfCode;
 
@@ -22,40 +22,12 @@ public sealed class Day09 : BaseTestableDay
             .ToList();
     }
 
-    internal static long CalculateAmplifierRun(List<long> program, List<long> thrusters, bool stopAfterOneGo)
-    {
-        long signal = 0;
-
-        var inputs = thrusters.Select(i => new List<long>() { i }).ToList();
-        var computers = thrusters.Select((_, index) => new Computer(program, inputs[index])).ToList();
-
-        while (true)
-        {
-            for (var amplifier = 0; amplifier < 5; amplifier++)
-            {
-                inputs[amplifier].Add(signal);
-
-                var output = computers[amplifier].RunProgram();
-
-                if (!output.HasValue) // Termination...
-                {
-                    return signal;
-                }
-
-                signal = output.Value;
-            }
-
-            if (stopAfterOneGo)
-            {
-                return signal;
-            }
-        }
-    }
-
     private Answer CalculatePart1Answer()
     {
         var computer = new Computer(_input, new List<long>() { 1 });
         var output = computer.RunProgramToTermination();
+
+        Debug.Assert(output.Count == 1);
 
         return output[0];  // 203 is too low
     }

@@ -42,4 +42,26 @@ public class TestComputer
         var computer = new Computer(program.ToList(), new List<long>());
         computer.RunProgramToTermination().Should().Equal(expectedOutput);
     }
+
+    [Theory]
+    [InlineData(new long[] { 109, -1, 4, 1, 99 }, new long[] { -1 })]
+    [InlineData(new long[] { 109, -1, 104, 1, 99 }, new long[] { 1 })]
+    [InlineData(new long[] { 109, -1, 204, 1, 99 }, new long[] { 109 })]
+    [InlineData(new long[] { 109, 1, 9, 2, 204, -6, 99 }, new long[] { 204 })]
+    [InlineData(new long[] { 109, 1, 109, 9, 204, -6, 99 }, new long[] { 204 })]
+    [InlineData(new long[] { 109, 1, 209, -1, 204, -106, 99 }, new long[] { 204 })]
+    public void ComputerProgramRunHailMary(long[] program, long[] expectedOutput)
+    {
+        var computer = new Computer(program.ToList(), new List<long>());
+        computer.RunProgramToTermination().Should().Equal(expectedOutput);
+    }
+
+    [Theory]
+    [InlineData(new long[] { 109, 1, 3, 3, 204, 2, 99 }, 1, new long[] { 1 })]
+    [InlineData(new long[] { 109, 1, 203, 2, 204, 2, 99 }, 1, new long[] { 1 })]
+    public void ComputerProgramRunHailMaryWithInput(long[] program, long input, long[] expectedOutput)
+    {
+        var computer = new Computer(program.ToList(), new List<long>() { input });
+        computer.RunProgramToTermination().Should().Equal(expectedOutput);
+    }
 }

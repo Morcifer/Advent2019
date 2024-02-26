@@ -97,6 +97,7 @@ public class Computer
 
             var code = Program[_instructionPointer];
             var opCode = (OpCode)(code % 100);
+            Console.WriteLine($"{code}: OpCode {opCode} at position {_instructionPointer} (relative {_relativeBase} and memory size {Program.Count}).");
 
             switch (opCode)
             {
@@ -122,6 +123,7 @@ public class Computer
                     break;
                 case OpCode.Store:
                     parameter1 = Program[_instructionPointer + 1];
+                    // parameter1 = GetParameter(1, code);
 
                     SetMemory((int)parameter1, _inputs[_inputPointer++]);
 
