@@ -63,14 +63,33 @@ public class Computer
     private long GetParameter(int parameterId, long code)
     {
         var parameterMode = (ParameterMode)((code / (int)Math.Pow(10, parameterId + 1)) % 10);
+        var location = Program[_instructionPointer + parameterId];
 
         return parameterMode switch
         {
-            ParameterMode.Position => GetMemory((int)Program[_instructionPointer + parameterId]),
-            ParameterMode.Immediate => GetMemory(_instructionPointer + parameterId),
-            ParameterMode.Relative => GetMemory((int)Program[_instructionPointer + parameterId] + _relativeBase),
+            ParameterMode.Position => GetMemory((int)location),
+            ParameterMode.Immediate => location,
+            ParameterMode.Relative => GetMemory((int)location + _relativeBase),
             _ => -1,
         };
+    }
+
+    private void SetParameter(int parameterId, long code, long value)
+    {
+        var parameterMode = (ParameterMode)((code / (int)Math.Pow(10, parameterId + 1)) % 10);
+        var location = Program[_instructionPointer + parameterId];
+
+        switch (parameterMode)
+        {
+            case ParameterMode.Position:
+                SetMemory((int)location, value);
+                break;
+            case ParameterMode.Relative:
+                SetMemory((int)location + _relativeBase, value);
+                break;
+            default:
+                throw new ArgumentException("BAH!");
+        }
     }
 
     public List<long> RunProgramToTermination()
@@ -97,16 +116,14 @@ public class Computer
 
             var code = Program[_instructionPointer];
             var opCode = (OpCode)(code % 100);
-            Console.WriteLine($"{code}: OpCode {opCode} at position {_instructionPointer} (relative {_relativeBase} and memory size {Program.Count}).");
+            //Console.WriteLine($"{code}: OpCode {opCode} at position {_instructionPointer} (relative {_relativeBase} and memory size {Program.Count}).");
 
             switch (opCode)
             {
                 case OpCode.Add:
                     parameter1 = GetParameter(1, code);
                     parameter2 = GetParameter(2, code);
-                    parameter3 = Program[_instructionPointer + 3];
-
-                    SetMemory((int)parameter3, parameter1 + parameter2);
+                    SetParameter(3, code, parameter1 + parameter2);
 
                     _instructionPointer += 4;
 
@@ -114,18 +131,13 @@ public class Computer
                 case OpCode.Multiply:
                     parameter1 = GetParameter(1, code);
                     parameter2 = GetParameter(2, code);
-                    parameter3 = Program[_instructionPointer + 3];
-
-                    SetMemory((int)parameter3, parameter1 * parameter2);
+                    SetParameter(3, code, parameter1 * parameter2);
 
                     _instructionPointer += 4;
 
                     break;
                 case OpCode.Store:
-                    parameter1 = Program[_instructionPointer + 1];
-                    // parameter1 = GetParameter(1, code);
-
-                    SetMemory((int)parameter1, _inputs[_inputPointer++]);
+                    SetParameter(1, code, _inputs[_inputPointer++]);
 
                     _instructionPointer += 2;
 
@@ -157,18 +169,14 @@ public class Computer
                 case OpCode.LessThan:
                     parameter1 = GetParameter(1, code);
                     parameter2 = GetParameter(2, code);
-                    parameter3 = Program[_instructionPointer + 3];
-
-                    SetMemory((int)parameter3, parameter1 < parameter2 ? 1 : 0);
+                    SetParameter(3, code, parameter1 < parameter2 ? 1 : 0);
 
                     _instructionPointer += 4;
                     break;
                 case OpCode.Equals:
                     parameter1 = GetParameter(1, code);
                     parameter2 = GetParameter(2, code);
-                    parameter3 = Program[_instructionPointer + 3];
-
-                    SetMemory((int)parameter3, parameter1 == parameter2 ? 1 : 0);
+                    SetParameter(3, code, parameter1 == parameter2 ? 1 : 0);
 
                     _instructionPointer += 4;
                     break;

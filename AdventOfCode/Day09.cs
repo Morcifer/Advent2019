@@ -29,12 +29,17 @@ public sealed class Day09 : BaseTestableDay
 
         Debug.Assert(output.Count == 1);
 
-        return output[0];  // 203 is too low
+        return output[0];
     }
 
     private Answer CalculatePart2Answer()
     {
-        return -1;
+        var computer = new Computer(_input, new List<long>() { 2 });
+        var output = computer.RunProgramToTermination();
+
+        Debug.Assert(output.Count == 1);
+
+        return output[0];
     }
 
     public override ValueTask<string> Solve_1() => CalculatePart1Answer();
