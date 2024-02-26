@@ -9,9 +9,9 @@ public class TestComputer
     [InlineData(new[] { 1, 1, 1, 4, 99, 5, 6, 0, 99 }, 30)] // => 30,1,1,4,2,5,6,0,99
     public void ComputerProgramRunAndTestProgramZeroSpot(int[] program, int expectedOutput)
     {
-        var realProgram = program.ToList();
-        Computer.RunProgram(realProgram, new List<int>());
-        realProgram[0].Should().Be(expectedOutput);
+        var computer = new Computer(program.ToList(), new List<int>());
+        computer.RunProgram(toTermination: true);
+        computer.Program[0].Should().Be(expectedOutput);
     }
 
     [Theory]
@@ -29,8 +29,7 @@ public class TestComputer
     [InlineData(new[] { 3, 3, 1105, -1, 9, 1101, 0, 0, 12, 4, 12, 99, 1 }, 5, 1)]
     public void ComputerProgramRunAndTestProgramOutput(int[] program, int input, int expectedOutput)
     {
-        var realProgram = program.ToList();
-        var result = Computer.RunProgram(realProgram, new List<int>() { input });
-        result[^1].Should().Be(expectedOutput);
+        var computer = new Computer(program.ToList(), new List<int>() { input });
+        computer.RunProgram(toTermination: true)[^1].Should().Be(expectedOutput);
     }
 }

@@ -23,15 +23,15 @@ public sealed class Day05 : BaseTestableDay
     private Answer GetDiagnosticsCode()
     {
         var program = _input.ToList();
-        var output = Computer.RunProgram(program, new List<int>() { 1 });
-        return output[^1];
+        var computer = new Computer(program, new List<int>() { 1 });
+        return computer.RunProgram(toTermination: true)[^1];
     }
 
     private Answer FindNounAndVerb()
     {
         var program = _input.ToList();
-        var output = Computer.RunProgram(program, new List<int>() { 5 });
-        return output[^1];
+        var computer = new Computer(program, new List<int>() { 5 });
+        return computer.RunProgram(toTermination: true)[^1];
     }
 
     public override ValueTask<string> Solve_1() => new(GetDiagnosticsCode());

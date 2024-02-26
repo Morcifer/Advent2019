@@ -29,8 +29,10 @@ public sealed class Day02 : BaseTestableDay
             program[1] = 12;
             program[2] = 2;
         }
-        Computer.RunProgram(program, new List<int>());
-        return program[0];
+        var computer = new Computer(program, new List<int>());
+        computer.RunProgram(toTermination: true);
+
+        return computer.Program[0];
     }
 
     private Answer FindNounAndVerb()
@@ -46,9 +48,10 @@ public sealed class Day02 : BaseTestableDay
 
                 try
                 {
-                    Computer.RunProgram(program, new List<int>());
+                    var computer = new Computer(program.ToList(), new List<int>());
+                    computer.RunProgram(toTermination: true);
 
-                    if (program[0] == 19690720)
+                    if (computer.Program[0] == 19690720)
                     {
                         return (100 * noun) + verb;
                     }

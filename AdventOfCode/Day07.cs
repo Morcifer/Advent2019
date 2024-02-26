@@ -26,22 +26,33 @@ public sealed class Day07 : BaseTestableDay
     {
         var signal = 0;
 
+        var inputs = thrusters.Select(i => new List<int>() { i }).ToList();
+        var outputs = thrusters.Select(i => new List<int>()).ToList();
+        var computers = thrusters.Select((_, index) => new Computer(program, inputs[index])).ToList();
+
         while (true)
         {
             for (var amplifier = 0; amplifier < 5; amplifier++)
             {
-                var inputs = new List<int>() { thrusters[amplifier], signal };
-                var outputs = Computer.RunProgram(program.ToList(), inputs);
-                signal = outputs[0];
+                inputs[amplifier].Add(signal);
+
+                var newOutputs = computers[amplifier].RunProgram(toTermination: false);
+
+                if (newOutputs.Count == outputs[amplifier].Count) // Termination...
+                {
+                    return signal;
+                }
+
+                outputs[amplifier] = newOutputs.ToList();
+
+                signal = newOutputs[^1];
             }
 
             if (stopAfterOneGo)
             {
-                break;
+                return signal;
             }
         }
-
-        return signal;
     }
 
     private Answer CalculatePart1Answer()
@@ -62,16 +73,14 @@ public sealed class Day07 : BaseTestableDay
 
     private Answer CalculatePart2Answer()
     {
-        return -1;
-
         var max = 0;
 
         var phases = Enumerable.Range(5, 5).ToList();
 
         foreach (var phasePermutation in phases.Permutations())
         {
-            var result = CalculateAmplifierRun(_input, phasePermutation.ToList(), stopAfterOneGo: true);
-            Console.WriteLine($"Phases {string.Join(",", phasePermutation)} give a result of {result}");
+            var result = CalculateAmplifierRun(_input, phasePermutation.ToList(), stopAfterOneGo: false);
+            //Console.WriteLine($"Phases {string.Join(",", phasePermutation)} give a result of {result}");
             max = Math.Max(max, result);
         }
 
