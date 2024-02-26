@@ -2,7 +2,7 @@
 
 public sealed class Day02 : BaseTestableDay
 {
-    private readonly List<int> _input;
+    private readonly List<long> _input;
 
     public Day02() : this(RunMode.Real)
     {
@@ -16,7 +16,7 @@ public sealed class Day02 : BaseTestableDay
             .ReadAllLines(InputFilePath)
             .First()
             .Split(',')
-            .Select(int.Parse)
+            .Select(long.Parse)
             .ToList();
     }
 
@@ -29,7 +29,7 @@ public sealed class Day02 : BaseTestableDay
             program[1] = 12;
             program[2] = 2;
         }
-        var computer = new Computer(program, new List<int>());
+        var computer = new Computer(program, new List<long>());
         computer.RunProgramToTermination();
 
         return computer.Program[0];
@@ -48,7 +48,7 @@ public sealed class Day02 : BaseTestableDay
 
                 try
                 {
-                    var computer = new Computer(program.ToList(), new List<int>());
+                    var computer = new Computer(program.ToList(), new List<long>());
                     computer.RunProgramToTermination();
 
                     if (computer.Program[0] == 19690720)

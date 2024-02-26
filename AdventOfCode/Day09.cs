@@ -1,16 +1,16 @@
-﻿using MoreLinq.Extensions;
+﻿using System.Runtime.CompilerServices;
 
 namespace AdventOfCode;
 
-public sealed class Day07 : BaseTestableDay
+public sealed class Day09 : BaseTestableDay
 {
     private readonly List<long> _input;
 
-    public Day07() : this(RunMode.Real)
+    public Day09() : this(RunMode.Real)
     {
     }
 
-    public Day07(RunMode runMode)
+    public Day09(RunMode runMode)
     {
         RunMode = runMode;
 
@@ -54,34 +54,15 @@ public sealed class Day07 : BaseTestableDay
 
     private Answer CalculatePart1Answer()
     {
-        long max = 0;
+        var computer = new Computer(_input, new List<long>() { 1 });
+        var output = computer.RunProgramToTermination();
 
-        var phases = Enumerable.Range(0, 5).Select(x => (long)x).ToList();
-
-        foreach (var phasePermutation in phases.Permutations())
-        {
-            var result = CalculateAmplifierRun(_input, phasePermutation.ToList(), stopAfterOneGo: true);
-            //Console.WriteLine($"Phases {string.Join(",", phasePermutation)} give a result of {result}");
-            max = Math.Max(max, result);
-        }
-
-        return max;
+        return output[0];  // 203 is too low
     }
 
     private Answer CalculatePart2Answer()
     {
-        long max = 0;
-
-        var phases = Enumerable.Range(5, 5).Select(x => (long)x).ToList();
-
-        foreach (var phasePermutation in phases.Permutations())
-        {
-            var result = CalculateAmplifierRun(_input, phasePermutation.ToList(), stopAfterOneGo: false);
-            //Console.WriteLine($"Phases {string.Join(",", phasePermutation)} give a result of {result}");
-            max = Math.Max(max, result);
-        }
-
-        return max;
+        return -1;
     }
 
     public override ValueTask<string> Solve_1() => CalculatePart1Answer();

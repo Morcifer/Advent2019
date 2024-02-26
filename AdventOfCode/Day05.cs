@@ -2,7 +2,7 @@
 
 public sealed class Day05 : BaseTestableDay
 {
-    private readonly List<int> _input;
+    private readonly List<long> _input;
 
     public Day05() : this(RunMode.Real)
     {
@@ -16,21 +16,21 @@ public sealed class Day05 : BaseTestableDay
             .ReadAllLines(InputFilePath)
             .First()
             .Split(',')
-            .Select(int.Parse)
+            .Select(long.Parse)
             .ToList();
     }
 
     private Answer GetDiagnosticsCode()
     {
         var program = _input.ToList();
-        var computer = new Computer(program, new List<int>() { 1 });
+        var computer = new Computer(program, new List<long>() { 1 });
         return computer.RunProgramToTermination()[^1];
     }
 
     private Answer FindNounAndVerb()
     {
         var program = _input.ToList();
-        var computer = new Computer(program, new List<int>() { 5 });
+        var computer = new Computer(program, new List<long>() { 5 });
         return computer.RunProgramToTermination()[^1];
     }
 
