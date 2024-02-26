@@ -12,29 +12,12 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="Inputs\05.test.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Inputs\05.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Inputs\03.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Inputs\03.test.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Inputs\02.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Inputs\02.test.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Inputs\01.test.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-    </None>
-    <None Update="Inputs\01.txt">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    <InternalsVisibleTo Include="AdventOfCode.Tests" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Inputs\*.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 

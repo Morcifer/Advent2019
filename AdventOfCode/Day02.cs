@@ -1,75 +1,70 @@
-﻿using System.Runtime.CompilerServices;
+﻿namespace AdventOfCode;
 
-
-[assembly: InternalsVisibleTo("AdventOfCode.Tests")]
-namespace AdventOfCode
+public sealed class Day02 : BaseTestableDay
 {
-    public sealed class Day02 : BaseTestableDay
+    private readonly List<int> _input;
+
+    public Day02() : this(RunMode.Real)
     {
-        private readonly List<int> _input;
+    }
 
-        public Day02() : this(RunMode.Real)
-        {
-        }
+    public Day02(RunMode runMode)
+    {
+        RunMode = runMode;
 
-        public Day02(RunMode runMode)
-        {
-            RunMode = runMode;
+        _input = File
+            .ReadAllLines(InputFilePath)
+            .First()
+            .Split(',')
+            .Select(int.Parse)
+            .ToList();
+    }
 
-            _input = File
-                .ReadAllLines(InputFilePath)
-                .First()
-                .Split(',')
-                .Select(int.Parse)
-                .ToList();
-        }
-
-        private Answer Program1202()
-        {
-            var program = _input.ToList();
+    private Answer Program1202()
+    {
+        var program = _input.ToList();
             
-            if (RunMode == RunMode.Real)
-            {
-                program[1] = 12;
-                program[2] = 2;
-            }
-            Computer.RunProgram(program, -1);
-            return program[0];
-        }
-
-        private Answer FindNounAndVerb()
+        if (RunMode == RunMode.Real)
         {
-            for (var noun = 0; noun < _input.Count; noun++)
+            program[1] = 12;
+            program[2] = 2;
+        }
+        Computer.RunProgram(program, -1);
+        return program[0];
+    }
+
+    private Answer FindNounAndVerb()
+    {
+        for (var noun = 0; noun < _input.Count; noun++)
+        {
+            for (var verb = 0; verb < _input.Count; verb++)
             {
-                for (var verb = 0; verb < _input.Count; verb++)
+                var program = _input.ToList();
+
+                program[1] = noun;
+                program[2] = verb;
+
+                try
                 {
-                    var program = _input.ToList();
+                    Computer.RunProgram(program, -1);
 
-                    program[1] = noun;
-                    program[2] = verb;
-
-                    try
+                    if (program[0] == 19690720)
                     {
-                        Computer.RunProgram(program, -1);
-
-                        if (program[0] == 19690720)
-                        {
-                            return (100 * noun) + verb;
-                        }
-                    }
-                    // ReSharper disable once EmptyGeneralCatchClause
-                    catch (Exception)
-                    {
+                        return (100 * noun) + verb;
                     }
                 }
+                // ReSharper disable once EmptyGeneralCatchClause
+                catch (Exception)
+                {
+                }
             }
-
-            return -1;
         }
 
-
-        public override ValueTask<string> Solve_1() => new(Program1202());
-
-        public override ValueTask<string> Solve_2() => new(FindNounAndVerb());
+        return -1;
     }
+
+
+    public override ValueTask<string> Solve_1() => new(Program1202());
+
+    public override ValueTask<string> Solve_2() => new(FindNounAndVerb());
 }

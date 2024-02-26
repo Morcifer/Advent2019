@@ -1,124 +1,123 @@
-﻿namespace AdventOfCode
+﻿namespace AdventOfCode;
+
+public enum OpCode
 {
-    public enum OpCode
-    {
-        Add = 1,
-        Multiply = 2,
-        Store = 3,
-        Output = 4,
-        JumpIfTrue = 5,
-        JumpIfFalse = 6,
-        LessThan = 7,
-        Equals = 8,
-        Terminate = 99,
-    }
+    Add = 1,
+    Multiply = 2,
+    Store = 3,
+    Output = 4,
+    JumpIfTrue = 5,
+    JumpIfFalse = 6,
+    LessThan = 7,
+    Equals = 8,
+    Terminate = 99,
+}
 
-    public enum ParameterMode
-    {
-        Position = 0, // Value stored in position in memory
-        Immediate = 1, // Value stored as a value
-    }
+public enum ParameterMode
+{
+    Position = 0, // Value stored in position in memory
+    Immediate = 1, // Value stored as a value
+}
     
-    public static class Computer
+public static class Computer
+{
+    private static int GetParameter(List<int> program, int instructionPointer, int parameterId, int code)
     {
-        private static int GetParameter(List<int> program, int instructionPointer, int parameterId, int code)
+        var parameterMode = (ParameterMode)((code / (int)Math.Pow(10, parameterId + 1)) % 10);
+
+        return parameterMode switch
         {
-            var parameterMode = (ParameterMode)((code / (int)Math.Pow(10, parameterId + 1)) % 10);
+            ParameterMode.Position => program[program[instructionPointer + parameterId]],
+            ParameterMode.Immediate => program[instructionPointer + parameterId],
+            _ => -1,
+        };
+    }
 
-            return parameterMode switch
-            {
-                ParameterMode.Position => program[program[instructionPointer + parameterId]],
-                ParameterMode.Immediate => program[instructionPointer + parameterId],
-                _ => -1,
-            };
-        }
+    public static List<int> RunProgram(List<int> program, int inputValue)
+    {
+        var outputs = new List<int>();
+        var instructionPointer = 0;
 
-        public static List<int> RunProgram(List<int> program, int inputValue)
+        while (instructionPointer < program.Count)
         {
-            var outputs = new List<int>();
-            var instructionPointer = 0;
+            int parameter1, parameter2, parameter3;
 
-            while (instructionPointer < program.Count)
+            var code = program[instructionPointer];
+            var opCode = (OpCode)(code % 100);
+
+            switch (opCode)
             {
-                int parameter1, parameter2, parameter3;
+                case OpCode.Add:
+                    parameter1 = GetParameter(program, instructionPointer, 1, code);
+                    parameter2 = GetParameter(program, instructionPointer, 2, code);
+                    parameter3 = program[instructionPointer + 3];
 
-                var code = program[instructionPointer];
-                var opCode = (OpCode)(code % 100);
+                    program[parameter3] = parameter1 + parameter2;
+                    instructionPointer += 4;
 
-                switch (opCode)
-                {
-                    case OpCode.Add:
-                        parameter1 = GetParameter(program, instructionPointer, 1, code);
-                        parameter2 = GetParameter(program, instructionPointer, 2, code);
-                        parameter3 = program[instructionPointer + 3];
+                    break;
+                case OpCode.Multiply:
+                    parameter1 = GetParameter(program, instructionPointer, 1, code);
+                    parameter2 = GetParameter(program, instructionPointer, 2, code);
+                    parameter3 = program[instructionPointer + 3];
 
-                        program[parameter3] = parameter1 + parameter2;
-                        instructionPointer += 4;
+                    program[parameter3] = parameter1 * parameter2;
+                    instructionPointer += 4;
 
-                        break;
-                    case OpCode.Multiply:
-                        parameter1 = GetParameter(program, instructionPointer, 1, code);
-                        parameter2 = GetParameter(program, instructionPointer, 2, code);
-                        parameter3 = program[instructionPointer + 3];
+                    break;
+                case OpCode.Store:
+                    parameter1 = program[instructionPointer + 1];
 
-                        program[parameter3] = parameter1 * parameter2;
-                        instructionPointer += 4;
+                    program[parameter1] = inputValue;
+                    instructionPointer += 2;
 
-                        break;
-                    case OpCode.Store:
-                        parameter1 = program[instructionPointer + 1];
+                    break;
+                case OpCode.Output:
+                    parameter1 = GetParameter(program, instructionPointer, 1, code);
 
-                        program[parameter1] = inputValue;
-                        instructionPointer += 2;
+                    outputs.Add(parameter1);
 
-                        break;
-                    case OpCode.Output:
-                        parameter1 = GetParameter(program, instructionPointer, 1, code);
+                    instructionPointer += 2;
+                    break;
 
-                        outputs.Add(parameter1);
+                case OpCode.Terminate:
+                    // ReSharper disable once RedundantAssignment
+                    instructionPointer += 1;
+                    return outputs;
 
-                        instructionPointer += 2;
-                        break;
+                case OpCode.JumpIfTrue:
+                    parameter1 = GetParameter(program, instructionPointer, 1, code);
+                    parameter2 = GetParameter(program, instructionPointer, 2, code);
 
-                    case OpCode.Terminate:
-                        // ReSharper disable once RedundantAssignment
-                        instructionPointer += 1;
-                        return outputs;
+                    instructionPointer = parameter1 != 0  ? parameter2 : instructionPointer + 3;
+                    break;
+                case OpCode.JumpIfFalse:
+                    parameter1 = GetParameter(program, instructionPointer, 1, code);
+                    parameter2 = GetParameter(program, instructionPointer, 2, code);
 
-                    case OpCode.JumpIfTrue:
-                        parameter1 = GetParameter(program, instructionPointer, 1, code);
-                        parameter2 = GetParameter(program, instructionPointer, 2, code);
+                    instructionPointer = parameter1 == 0 ? parameter2 : instructionPointer + 3;
+                    break;
+                case OpCode.LessThan:
+                    parameter1 = GetParameter(program, instructionPointer, 1, code);
+                    parameter2 = GetParameter(program, instructionPointer, 2, code);
+                    parameter3 = program[instructionPointer + 3];
 
-                        instructionPointer = parameter1 != 0  ? parameter2 : instructionPointer + 3;
-                        break;
-                    case OpCode.JumpIfFalse:
-                        parameter1 = GetParameter(program, instructionPointer, 1, code);
-                        parameter2 = GetParameter(program, instructionPointer, 2, code);
+                    program[parameter3] = parameter1 < parameter2 ? 1 : 0;
+                    instructionPointer += 4;
+                    break;
+                case OpCode.Equals:
+                    parameter1 = GetParameter(program, instructionPointer, 1, code);
+                    parameter2 = GetParameter(program, instructionPointer, 2, code);
+                    parameter3 = program[instructionPointer + 3];
 
-                        instructionPointer = parameter1 == 0 ? parameter2 : instructionPointer + 3;
-                        break;
-                    case OpCode.LessThan:
-                        parameter1 = GetParameter(program, instructionPointer, 1, code);
-                        parameter2 = GetParameter(program, instructionPointer, 2, code);
-                        parameter3 = program[instructionPointer + 3];
-
-                        program[parameter3] = parameter1 < parameter2 ? 1 : 0;
-                        instructionPointer += 4;
-                        break;
-                    case OpCode.Equals:
-                        parameter1 = GetParameter(program, instructionPointer, 1, code);
-                        parameter2 = GetParameter(program, instructionPointer, 2, code);
-                        parameter3 = program[instructionPointer + 3];
-
-                        program[parameter3] = parameter1 == parameter2 ? 1 : 0;
-                        instructionPointer += 4;
-                        break;
-                    default:
-                        throw new ArgumentException("Invalid value for OpCode", nameof(OpCode));
-                }
+                    program[parameter3] = parameter1 == parameter2 ? 1 : 0;
+                    instructionPointer += 4;
+                    break;
+                default:
+                    throw new ArgumentException("Invalid value for OpCode", nameof(OpCode));
             }
-
-            return outputs;
         }
+
+        return outputs;
     }
 }
