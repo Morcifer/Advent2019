@@ -29,7 +29,7 @@ public sealed class Day02 : BaseTestableDay
             program[1] = 12;
             program[2] = 2;
         }
-        Computer.RunProgram(program, -1);
+        Computer.RunProgram(program, new List<int>());
         return program[0];
     }
 
@@ -46,7 +46,7 @@ public sealed class Day02 : BaseTestableDay
 
                 try
                 {
-                    Computer.RunProgram(program, -1);
+                    Computer.RunProgram(program, new List<int>());
 
                     if (program[0] == 19690720)
                     {

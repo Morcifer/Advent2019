@@ -10,7 +10,7 @@ public class TestComputer
     public void ComputerProgramRunAndTestProgramZeroSpot(int[] program, int expectedOutput)
     {
         var realProgram = program.ToList();
-        Computer.RunProgram(realProgram, -1);
+        Computer.RunProgram(realProgram, new List<int>());
         realProgram[0].Should().Be(expectedOutput);
     }
 
@@ -30,7 +30,7 @@ public class TestComputer
     public void ComputerProgramRunAndTestProgramOutput(int[] program, int input, int expectedOutput)
     {
         var realProgram = program.ToList();
-        var result = Computer.RunProgram(realProgram, input);
+        var result = Computer.RunProgram(realProgram, new List<int>() { input });
         result[^1].Should().Be(expectedOutput);
     }
 }

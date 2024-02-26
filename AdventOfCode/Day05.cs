@@ -23,14 +23,14 @@ public sealed class Day05 : BaseTestableDay
     private Answer GetDiagnosticsCode()
     {
         var program = _input.ToList();
-        var output = Computer.RunProgram(program, 1);
+        var output = Computer.RunProgram(program, new List<int>() { 1 });
         return output[^1];
     }
 
     private Answer FindNounAndVerb()
     {
         var program = _input.ToList();
-        var output = Computer.RunProgram(program, 5);
+        var output = Computer.RunProgram(program, new List<int>() { 5 });
         return output[^1];
     }
 

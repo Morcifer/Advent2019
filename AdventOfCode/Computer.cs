@@ -33,10 +33,11 @@ public static class Computer
         };
     }
 
-    public static List<int> RunProgram(List<int> program, int inputValue)
+    public static List<int> RunProgram(List<int> program, List<int> inputValues)
     {
         var outputs = new List<int>();
         var instructionPointer = 0;
+        var inputValuePointer = 0;
 
         while (instructionPointer < program.Count)
         {
@@ -68,7 +69,7 @@ public static class Computer
                 case OpCode.Store:
                     parameter1 = program[instructionPointer + 1];
 
-                    program[parameter1] = inputValue;
+                    program[parameter1] = inputValues[inputValuePointer++];
                     instructionPointer += 2;
 
                     break;
