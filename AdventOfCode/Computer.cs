@@ -112,7 +112,7 @@ public class Computer
     {
         while (_instructionPointer < Program.Count)
         {
-            long parameter1, parameter2, parameter3;
+            long parameter1, parameter2;
 
             var code = Program[_instructionPointer];
             var opCode = (OpCode)(code % 100);
