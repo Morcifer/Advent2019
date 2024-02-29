@@ -3,6 +3,7 @@
 public enum RunMode
 {
     Test,
+    Test2,
     Real,
 }
 

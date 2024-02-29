@@ -1,4 +1,5 @@
-﻿using MoreLinq;
+﻿using MathNet.Numerics;
+using MoreLinq;
 using Vector3D = System.Collections.Generic.List<int>;
 
 namespace AdventOfCode;
@@ -24,11 +25,13 @@ public sealed class Day12 : BaseTestableDay
                 _input.Add([2, -10, -7]);
                 _input.Add([4, -8, 8]);
                 _input.Add([3, 5, -1]);
+                break;
 
-                //_input.Add(new Vector3D[-8, -10, 0]);
-                //_input.Add(new Vector3D[5, 5, 10]);
-                //_input.Add(new Vector3D[2, -7, 3]);
-                //_input.Add(new Vector3D[9, -8, -3]);
+            case RunMode.Test2:
+                _input.Add([-8, -10, 0]);
+                _input.Add([5, 5, 10]);
+                _input.Add([2, -7, 3]);
+                _input.Add([9, -8, -3]);
                 break;
 
             case RunMode.Real:
@@ -48,10 +51,33 @@ public sealed class Day12 : BaseTestableDay
         var potential = _input.Select(_ => 0).ToList();
         var kinetic = _input.Select(_ => 0).ToList();
 
+        var axisHistory = Enumerable.Range(0, 3).Select(_ => new Dictionary<(int, int, int, int, int, int, int, int), int>()).ToList();
+        var axisHistoryRepeats = Enumerable.Range(0, 3).Select(_ => 0).ToList();
+
         for (var step = 0; step < numberOfSteps; step++)
         {
+            // Check history
+            foreach (var axis in Enumerable.Range(0, 3))
+            {
+                var keyList = positions.Select(p => p[axis]).Concat(velocities.Select(v => v[axis])).ToList();
+                var key = (keyList[0], keyList[1], keyList[2], keyList[3], keyList[4], keyList[5], keyList[6], keyList[7]);
+
+                if (axisHistoryRepeats[axis] == 0 && axisHistory[axis].ContainsKey(key))
+                {
+                    //Console.WriteLine($"History repeats itself for axis {axis} at {step}");
+                    axisHistoryRepeats[axis] = step - axisHistory[axis][key];
+                }
+
+                axisHistory[axis][key] = step;
+            }
+
+            if (!firstPart && axisHistoryRepeats.All(h => h > 0))
+            {
+                return Euclid.LeastCommonMultiple(axisHistoryRepeats[0], axisHistoryRepeats[1], axisHistoryRepeats[2]);
+            }
+
             // Update velocities
-            foreach (var pair in Enumerable.Range(0, 4).Subsets(subsetSize: 2))
+                foreach (var pair in Enumerable.Range(0, 4).Subsets(subsetSize: 2))
             {
                 var first = pair[0];
                 var second = pair[1];
@@ -90,7 +116,7 @@ public sealed class Day12 : BaseTestableDay
 
     private Answer CalculatePart2Answer()
     {
-        return SimulateGravity(100000, false);
+        return SimulateGravity(1000000, false);
     }
 
     public override ValueTask<string> Solve_1() => CalculatePart1Answer();
