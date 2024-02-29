@@ -51,8 +51,11 @@ public sealed class Day12 : BaseTestableDay
         var potential = _input.Select(_ => 0).ToList();
         var kinetic = _input.Select(_ => 0).ToList();
 
-        var axisHistory = Enumerable.Range(0, 3).Select(_ => new Dictionary<(int, int, int, int, int, int, int, int), int>()).ToList();
         var axisHistoryRepeats = Enumerable.Range(0, 3).Select(_ => 0).ToList();
+        var startingKeyPerAxis = Enumerable.Range(0, 3)
+            .Select(axis => positions.Select(p => p[axis]).Concat(velocities.Select(v => v[axis])).ToList())
+            .Select(keyList => (keyList[0], keyList[1], keyList[2], keyList[3], keyList[4], keyList[5], keyList[6], keyList[7]))
+            .ToList();
 
         for (var step = 0; step < numberOfSteps; step++)
         {
@@ -62,13 +65,11 @@ public sealed class Day12 : BaseTestableDay
                 var keyList = positions.Select(p => p[axis]).Concat(velocities.Select(v => v[axis])).ToList();
                 var key = (keyList[0], keyList[1], keyList[2], keyList[3], keyList[4], keyList[5], keyList[6], keyList[7]);
 
-                if (axisHistoryRepeats[axis] == 0 && axisHistory[axis].ContainsKey(key))
+                if (axisHistoryRepeats[axis] == 0 && key == startingKeyPerAxis[axis])
                 {
                     //Console.WriteLine($"History repeats itself for axis {axis} at {step}");
-                    axisHistoryRepeats[axis] = step - axisHistory[axis][key];
+                    axisHistoryRepeats[axis] = step;
                 }
-
-                axisHistory[axis][key] = step;
             }
 
             if (!firstPart && axisHistoryRepeats.All(h => h > 0))
