@@ -52,7 +52,7 @@ public sealed class Day13 : BaseTestableDay
         };
     }
 
-    private (Dictionary<GridSpot, Tile>, long?) ConvertOutputToGameBoard(List<long> outputs)
+    private (Dictionary<GridSpot, Tile>, long) ConvertOutputToGameBoard(List<long> outputs)
     {
         var board = outputs
             .Chunk(3)
@@ -67,7 +67,7 @@ public sealed class Day13 : BaseTestableDay
             .Chunk(3)
             .FirstOrDefault(c => c[0] == -1)?[2];
 
-        return (board, score);
+        return (board, score.GetValueOrDefault(0));
     }
 
     private void PrintBoard(Dictionary<GridSpot, Tile> board)
@@ -89,39 +89,60 @@ public sealed class Day13 : BaseTestableDay
         var computer = new Computer(_input, new List<long>());
         var outputs = computer.RunProgramToTermination();
 
-        var (board, _) = ConvertOutputToGameBoard(outputs);
+        var (board, score) = ConvertOutputToGameBoard(outputs);
 
-        PrintBoard(board);
+        //PrintBoard(board);
 
         var gameCode = _input.ToList();
         gameCode[0] = 2;
 
-        var inputs = new List<long>() { -1, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+        var inputs = new List<long>();
         var game = new Computer(gameCode, inputs);
 
         while (true) // Turn loop
         {
-            var currentOutputs = new List<long>();
+            var threeOutputs = new List<long>();
 
-            while (true) // Output loop
+            for (var i = 0; i < 3; i++)
             {
                 var (returnMode, result) = game.RunProgram();
 
-                if (returnMode == ReturnMode.Terminate) // This means GAME OVER. Which suggests that we're getting an update, not whole screens.
+                if (returnMode == ReturnMode.Terminate) // This means GAME OVER.
                 {
+                    //PrintBoard(board);
+                    return score;
+                }
+
+                if (returnMode == ReturnMode.Input)
+                {
+                    //PrintBoard(board);
+
+                    var paddle = board.First(kvp => kvp.Value == Tile.Paddle).Key;
+                    var ball = board.First(kvp => kvp.Value == Tile.Ball).Key;
+                    inputs.Add(ball.Column.CompareTo(paddle.Column)); // -1 for left, 0 for stay, 1 for right.
+
                     break;
                 }
-                else
-                {
-                    currentOutputs.Add(result.Value);
-                }
+
+                threeOutputs.Add(result.Value);
             }
 
-            var (currentBoard, currentScore) = ConvertOutputToGameBoard(currentOutputs);
-            PrintBoard(currentBoard);
-        }
+            if (threeOutputs.Count != 3) // It's this, or a goto for the game loop. :)
+            {
+                continue;
+            }
 
-        return -1;
+            if (threeOutputs[0] == -1) // Score!
+            {
+                score = threeOutputs.Last();
+                //Console.WriteLine($"Score is {score}");
+
+                continue;
+            }
+
+            var spot = new GridSpot((int)threeOutputs[1], (int)threeOutputs[0]);
+            board[spot] = (Tile)threeOutputs[2];
+        }
     }
 
     public override ValueTask<string> Solve_1() => CalculatePart1Answer();
