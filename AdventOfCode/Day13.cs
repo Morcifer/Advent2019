@@ -1,5 +1,4 @@
-﻿using System.Diagnostics;
-using GridSpot = (int Row, int Column);
+﻿using GridSpot = (int Row, int Column);
 
 namespace AdventOfCode;
 
@@ -58,7 +57,7 @@ public sealed class Day13 : BaseTestableDay
         var board = outputs
             .Chunk(3)
             .Where(c => c[0] != -1)
-            .GroupBy(c => new GridSpot((int)c[1], (int)c[0]))
+            .GroupBy(c => new GridSpot((int)c[1], (int)c[0])) // won't need this soon.
             .ToDictionary(
                 g => g.Key,
                 g => (Tile)g.Last()[2]
@@ -106,9 +105,9 @@ public sealed class Day13 : BaseTestableDay
 
             while (true) // Output loop
             {
-                var result = game.RunProgram();
+                var (returnMode, result) = game.RunProgram();
 
-                if (result == null) // This means GAME OVER. Which suggests that we're getting an update, not whole screens.
+                if (returnMode == ReturnMode.Terminate) // This means GAME OVER. Which suggests that we're getting an update, not whole screens.
                 {
                     break;
                 }

@@ -35,9 +35,9 @@ public sealed class Day07 : BaseTestableDay
             {
                 inputs[amplifier].Add(signal);
 
-                var output = computers[amplifier].RunProgram();
+                var (returnMode, output) = computers[amplifier].RunProgram();
 
-                if (!output.HasValue) // Termination...
+                if (returnMode == ReturnMode.Terminate)
                 {
                     return signal;
                 }

@@ -43,9 +43,9 @@ public sealed class Day11 : BaseTestableDay
             inputs.Add(whitePanels.Contains(currentPanel) ? 1 : 0); // 0 if panel is black, 1 if it's white.
 
             // First output - color to paint.
-            var color = computer.RunProgram(); // 0 = black, 1 = white.
+            var (returnMode, color) = computer.RunProgram(); // 0 = black, 1 = white.
 
-            if (color == null)
+            if (returnMode == ReturnMode.Terminate)
             {
                 break;
             }
@@ -63,7 +63,7 @@ public sealed class Day11 : BaseTestableDay
             allPanels.Add(currentPanel);
 
             // Second output - direction to turn.
-            var direction = computer.RunProgram(); // 0 = left 90 degrees, 1 = right 90 degrees.
+            var (_, direction) = computer.RunProgram(); // 0 = left 90 degrees, 1 = right 90 degrees.
 
             switch (direction)
             {

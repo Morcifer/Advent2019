@@ -20,6 +20,13 @@ public enum ParameterMode
     Immediate = 1, // Value stored as a value
     Relative = 2, // Value stored in relative position
 }
+
+public enum ReturnMode
+{
+    Terminate,
+    Output,
+    Input,
+}
     
 public class Computer
 {
@@ -97,18 +104,24 @@ public class Computer
         var outputs = new List<long>();
         while (true)
         {
-            var output = this.RunProgram();
+            var (returnMode, output) = this.RunProgram();
 
-            if (!output.HasValue)
+            switch (returnMode)
             {
-                return outputs;
+                case ReturnMode.Terminate:
+                    return outputs;
+                case ReturnMode.Input:
+                    throw new ApplicationException("I got an input request when I shouldn't need one!");
+                case ReturnMode.Output:
+                    outputs.Add(output.Value);
+                    break;
+                default:
+                    throw new ApplicationException("You shouldn't be here!");
             }
-
-            outputs.Add(output.Value);
         }
     }
 
-    public long? RunProgram()
+    public (ReturnMode, long?) RunProgram()
     {
         while (_instructionPointer < Program.Count)
         {
@@ -137,6 +150,11 @@ public class Computer
 
                     break;
                 case OpCode.Store:
+                    if (_inputs.Count <= _inputPointer)
+                    {
+                        return (ReturnMode.Input, null);
+                    }
+
                     SetParameter(1, code, _inputs[_inputPointer++]);
 
                     _instructionPointer += 2;
@@ -147,12 +165,12 @@ public class Computer
 
                     _instructionPointer += 2;
 
-                    return parameter1;
+                    return (ReturnMode.Output, parameter1);
 
                 case OpCode.Terminate:
                     // ReSharper disable once RedundantAssignment
                     _instructionPointer += 1;
-                    return null;
+                    return (ReturnMode.Terminate, null);
 
                 case OpCode.JumpIfTrue:
                     parameter1 = GetParameter(1, code);
