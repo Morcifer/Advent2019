@@ -48,6 +48,22 @@ public sealed class Day14 : BaseTestableDay
                 x => _input.Count(y => y.Inputs.Any(t => t.Material == x.Output.Material))
             );
 
+        var levels = new Dictionary<string, int>() { { "ORE", 0} };
+        var queue = new Queue<string>();
+        queue.Enqueue("ORE");
+
+        while (queue.Count > 0)
+        {
+            var toSearch = queue.Dequeue();
+            var level = levels[toSearch];
+
+            foreach (var conversion in conversions.Where(kvp => !levels.ContainsKey(kvp.Key) && kvp.Value.Inputs.Any(t => t.Material == toSearch)))
+            {
+                levels[conversion.Key] = level + 1;
+                queue.Enqueue(conversion.Key);
+            }
+        }
+
         var totalComponents = new Dictionary<string, int>() { { "FUEL", 1 } };
 
         while (totalComponents.Keys.Count > 1 || !totalComponents.ContainsKey("ORE"))
@@ -55,6 +71,7 @@ public sealed class Day14 : BaseTestableDay
             var firstNoneOre = totalComponents
                 .Where(kvp => kvp.Key != "ORE")
                 .OrderByDescending(kvp => totalComponents[kvp.Key] % conversions[kvp.Key].OutputAmount == 0) // round-number conversions first
+                .ThenByDescending(kvp => levels[kvp.Key])
                 .ThenByDescending(kvp => conversions[kvp.Key].Inputs.Count)
                 .ThenBy(kvp => sources[kvp.Key])
                 .First()
@@ -63,7 +80,7 @@ public sealed class Day14 : BaseTestableDay
             var (reactionOutputAmount, reactionInputs) = conversions[firstNoneOre];
             var multiple = (double)totalComponents[firstNoneOre] / reactionOutputAmount;
 
-            //Console.WriteLine($"Before handling {firstNoneOre}'s (multiple {multiple} -> {(int)Math.Ceiling(multiple)}): {string.Join(", ", totalComponents.Select(kvp => $"{kvp.Value} {kvp.Key}"))}");
+           // Console.WriteLine($"Before handling {firstNoneOre}'s (multiple {multiple} -> {(int)Math.Ceiling(multiple)}): {string.Join(", ", totalComponents.Select(kvp => $"{kvp.Value} {kvp.Key}"))}");
 
             totalComponents.Remove(firstNoneOre);
 
@@ -76,7 +93,7 @@ public sealed class Day14 : BaseTestableDay
             //Console.WriteLine($"After handling {firstNoneOre}'s (multiple {multiple}): {string.Join(", ", totalComponents.Select(kvp => $"{kvp.Value} {kvp.Key}"))}");
         }
 
-        return totalComponents["ORE"]; // 1039136 too high. 1037001 is also bad. 1016165 is also too high. 
+        return totalComponents["ORE"]; // 1039136 too high. 1 037 001 is also bad. 1016165 is also too high.  1 146 960? Geh.
     }
 
     private Answer CalculatePart2Answer()
