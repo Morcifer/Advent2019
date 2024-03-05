@@ -58,7 +58,7 @@ public sealed class Day14 : BaseTestableDay
         return distancesFromOre;
     }
 
-    private Answer CalculatePart1Answer()
+    private long GetRequiredOre(long requiredFuel)
     {
         var conversions = _input
             .ToDictionary(
@@ -68,7 +68,7 @@ public sealed class Day14 : BaseTestableDay
 
         var distancesFromOre = GetDistancesFromOre(conversions);
 
-        var neededMaterials = new Dictionary<string, int>() { { "FUEL", 1 } };
+        var neededMaterials = new Dictionary<string, long>() { { "FUEL", requiredFuel } };
 
         while (neededMaterials.Count > 1 || !neededMaterials.ContainsKey("ORE"))
         {
@@ -78,7 +78,7 @@ public sealed class Day14 : BaseTestableDay
                 .Key;
 
             var (reactionOutputAmount, reactionInputs) = conversions[firstNoneOre];
-            var multiple = (int)Math.Ceiling((double)neededMaterials[firstNoneOre] / reactionOutputAmount);
+            var multiple = (long)Math.Ceiling((double)neededMaterials[firstNoneOre] / reactionOutputAmount);
 
             neededMaterials.Remove(firstNoneOre);
 
@@ -92,9 +92,35 @@ public sealed class Day14 : BaseTestableDay
         return neededMaterials["ORE"];
     }
 
+    private Answer CalculatePart1Answer()
+    {
+        return GetRequiredOre(1);
+    }
+
     private Answer CalculatePart2Answer()
     {
-        return -1;
+        var availableOre = 1000000000000;
+        var singleFuelOreAmount = GetRequiredOre(1);
+
+        var targetFuel = availableOre / singleFuelOreAmount; // Estimate fuel generation.
+        var oreForTargetFuel = GetRequiredOre(targetFuel);
+
+        while (true) // Start increasing the fuel amount until you overshot
+        {
+            var possibleExtraFuel = (long)Math.Floor((double)(availableOre - oreForTargetFuel) / singleFuelOreAmount);
+            possibleExtraFuel = Math.Max(possibleExtraFuel, 1);
+
+            targetFuel += possibleExtraFuel;
+            oreForTargetFuel = GetRequiredOre(targetFuel);
+
+            //Console.WriteLine($"Required ore for {targetFuel} fuel is {oreForTargetFuel} (vs. {availableOre})");
+
+            if (oreForTargetFuel >= availableOre)
+            {
+                var correction = oreForTargetFuel == availableOre ? 0 : -1;
+                return targetFuel + correction;
+            }
+        }
     }
 
     public override ValueTask<string> Solve_1() => CalculatePart1Answer();
