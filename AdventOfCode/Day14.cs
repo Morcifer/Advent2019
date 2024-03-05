@@ -34,6 +34,30 @@ public sealed class Day14 : BaseTestableDay
         }
     }
 
+    private Dictionary<string, int> GetDistancesFromOre(Dictionary<string, (int OutputAmount, List<(int Amount, string Material)> Inputs)> conversions)
+    {
+        var distancesFromOre = new Dictionary<string, int>() { { "ORE", 0 } };
+        while (distancesFromOre.Count <= conversions.Count)
+        {
+            foreach (var conversion in conversions)
+            {
+                if (distancesFromOre.ContainsKey(conversion.Key))
+                {
+                    continue;
+                }
+
+                if (!conversion.Value.Inputs.All(t => distancesFromOre.ContainsKey(t.Material)))
+                {
+                    continue;
+                }
+
+                distancesFromOre[conversion.Key] = conversion.Value.Inputs.Select(i => distancesFromOre[i.Material]).Max() + 1;
+            }
+        }
+
+        return distancesFromOre;
+    }
+
     private Answer CalculatePart1Answer()
     {
         var conversions = _input
@@ -42,58 +66,30 @@ public sealed class Day14 : BaseTestableDay
                 x => (OutputAmount: x.Output.Amount, Inputs: x.Inputs)
             );
 
-        var sources = _input
-            .ToDictionary(
-                x => x.Output.Material,
-                x => _input.Count(y => y.Inputs.Any(t => t.Material == x.Output.Material))
-            );
+        var distancesFromOre = GetDistancesFromOre(conversions);
 
-        var levels = new Dictionary<string, int>() { { "ORE", 0} };
-        var queue = new Queue<string>();
-        queue.Enqueue("ORE");
+        var neededMaterials = new Dictionary<string, int>() { { "FUEL", 1 } };
 
-        while (queue.Count > 0)
+        while (neededMaterials.Count > 1 || !neededMaterials.ContainsKey("ORE"))
         {
-            var toSearch = queue.Dequeue();
-            var level = levels[toSearch];
-
-            foreach (var conversion in conversions.Where(kvp => !levels.ContainsKey(kvp.Key) && kvp.Value.Inputs.Any(t => t.Material == toSearch)))
-            {
-                levels[conversion.Key] = level + 1;
-                queue.Enqueue(conversion.Key);
-            }
-        }
-
-        var totalComponents = new Dictionary<string, int>() { { "FUEL", 1 } };
-
-        while (totalComponents.Keys.Count > 1 || !totalComponents.ContainsKey("ORE"))
-        {
-            var firstNoneOre = totalComponents
+            var firstNoneOre = neededMaterials
                 .Where(kvp => kvp.Key != "ORE")
-                .OrderByDescending(kvp => totalComponents[kvp.Key] % conversions[kvp.Key].OutputAmount == 0) // round-number conversions first
-                .ThenByDescending(kvp => levels[kvp.Key])
-                .ThenByDescending(kvp => conversions[kvp.Key].Inputs.Count)
-                .ThenBy(kvp => sources[kvp.Key])
-                .First()
+                .MaxBy(kvp => distancesFromOre[kvp.Key])
                 .Key;
 
             var (reactionOutputAmount, reactionInputs) = conversions[firstNoneOre];
-            var multiple = (double)totalComponents[firstNoneOre] / reactionOutputAmount;
+            var multiple = (int)Math.Ceiling((double)neededMaterials[firstNoneOre] / reactionOutputAmount);
 
-           // Console.WriteLine($"Before handling {firstNoneOre}'s (multiple {multiple} -> {(int)Math.Ceiling(multiple)}): {string.Join(", ", totalComponents.Select(kvp => $"{kvp.Value} {kvp.Key}"))}");
-
-            totalComponents.Remove(firstNoneOre);
+            neededMaterials.Remove(firstNoneOre);
 
             foreach (var reactionInput in reactionInputs)
             {
-                totalComponents.TryAdd(reactionInput.Material, 0);
-                totalComponents[reactionInput.Material] += (int)Math.Ceiling(multiple) * reactionInput.Amount;
+                neededMaterials.TryAdd(reactionInput.Material, 0);
+                neededMaterials[reactionInput.Material] += multiple * reactionInput.Amount;
             }
-
-            //Console.WriteLine($"After handling {firstNoneOre}'s (multiple {multiple}): {string.Join(", ", totalComponents.Select(kvp => $"{kvp.Value} {kvp.Key}"))}");
         }
 
-        return totalComponents["ORE"]; // 1039136 too high. 1 037 001 is also bad. 1016165 is also too high.  1 146 960? Geh.
+        return neededMaterials["ORE"];
     }
 
     private Answer CalculatePart2Answer()
