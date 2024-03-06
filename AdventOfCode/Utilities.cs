@@ -30,6 +30,14 @@ public static class Utilities
         }
     }
 
+    public static IEnumerable<(T, T)> Windows<T>(this List<T> source)
+    {
+        for (int i = 0; i < source.Count - 1; i++)
+        {
+            yield return (source[i], source[i + 1]);
+        }
+    }
+
     public static int Product(this IEnumerable<int> source)
     {
         return source.Aggregate(1, (x, y) => x * y);
