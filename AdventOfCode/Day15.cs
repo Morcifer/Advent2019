@@ -27,7 +27,11 @@ public enum TileType
 
 public sealed class Day15 : BaseTestableDay
 {
-    private readonly List<long> _input;
+    private readonly Computer _computer;
+    private readonly List<long> _computerInputs;
+
+    private (int Row, int Column) _currentTile;
+    private Dictionary<(int Row, int Column), TileType> _map;
 
     public Day15() : this(RunMode.Real)
     {
@@ -37,12 +41,19 @@ public sealed class Day15 : BaseTestableDay
     {
         RunMode = runMode;
 
-        _input = File
+        var program = File
             .ReadAllLines(InputFilePath)
             .First()
             .Split(',')
             .Select(long.Parse)
             .ToList();
+
+        _computerInputs = new List<long>();
+        _computer = new Computer(program, _computerInputs);
+
+        _currentTile = (Row: 0, Column: 0);
+        _map = new Dictionary<(int Row, int Column), TileType>();
+        _map[_currentTile] = TileType.Empty;
     }
 
     private string PrintTile(TileType tileType)
@@ -58,21 +69,21 @@ public sealed class Day15 : BaseTestableDay
         };
     }
 
-    private void PrintMap(Dictionary<(int Row, int Column), TileType> panels, (int Row, int Column) droid)
+    private void PrintMap((int Row, int Column) droid)
     {
-        var minRow = panels.Keys.Min(x => x.Row);
-        var maxRow = panels.Keys.Max(x => x.Row);
-        var minColumn = panels.Keys.Min(x => x.Column);
-        var maxColumn = panels.Keys.Max(x => x.Column);
+        var minRow = _map.Keys.Min(x => x.Row);
+        var maxRow = _map.Keys.Max(x => x.Row);
+        var minColumn = _map.Keys.Min(x => x.Column);
+        var maxColumn = _map.Keys.Max(x => x.Column);
 
         for (var row = minRow; row <= maxRow; row++)
         {
             var toPrint = Enumerable.Range(minColumn, maxColumn - minColumn + 1)
-                .Select(column => (row, column) == droid && panels.GetValueOrDefault((row, column), TileType.Unknown) != TileType.Oxygen
+                .Select(column => (row, column) == droid && _map.GetValueOrDefault((row, column), TileType.Unknown) != TileType.Oxygen
                     ? TileType.Droid
                     : (row, column) == (0, 0)
                         ? TileType.Origin
-                        : panels.GetValueOrDefault((row, column), TileType.Unknown)
+                        : _map.GetValueOrDefault((row, column), TileType.Unknown)
                 )
                 .Select(PrintTile)
                 .ToList();
@@ -106,7 +117,7 @@ public sealed class Day15 : BaseTestableDay
         };
     }
 
-    private List<(int row, int Column)> FindShortestPath(Dictionary<(int Row, int Column), TileType> map, (int Row, int Column) source, (int Row, int Column) target)
+    private List<(int row, int Column)> FindShortestPath((int Row, int Column) source, (int Row, int Column) target)
     {
         var queue = new Queue<(int Row, int Column)>();
 
@@ -123,12 +134,12 @@ public sealed class Day15 : BaseTestableDay
                 break;
             }
 
-            if (!map.ContainsKey(toExplore))
+            if (!_map.ContainsKey(toExplore))
             {
                 continue;
             }
 
-            if (map[toExplore] != TileType.Empty && map[toExplore] != TileType.Oxygen)
+            if (_map[toExplore] != TileType.Empty && _map[toExplore] != TileType.Oxygen)
             {
                 continue;
             }
@@ -160,19 +171,12 @@ public sealed class Day15 : BaseTestableDay
         return result.Reversed().ToList();
     }
 
-    private (Computer Computer, List<long> ComputerInputs, Dictionary<(int Row, int Column), TileType> map, (int Row, int Column) currentLocation)? FindOxygen()
+    private void FindOxygen()
     {
         // Stage 1: Exploration.
         // Stage 2: Find your way back to origin and fill holes along the way. -- not needed in the end.
         // Stage 3: Raw calculation to find shortest path from origin to oxygen.
         var previousTile = (Row: 0, Column: 0);
-        var currentTile = (Row: 0, Column: 0);
-
-        var map = new Dictionary<(int Row, int Column), TileType>();
-        map[currentTile] = TileType.Empty;
-
-        var inputs = new List<long>();
-        var computer = new Computer(_input, inputs);
 
         var directionRotations = new List<MovementCommand>
         {
@@ -185,24 +189,24 @@ public sealed class Day15 : BaseTestableDay
         while (true)
         {
             MovementCommand? newInput = directionRotations
-                .Select(d => (Direction: d, Tile: GetTileForCommand(currentTile, d)))
-                .Where(t => !map.ContainsKey(t.Tile) || map[t.Tile] != TileType.Wall)
+                .Select(d => (Direction: d, Tile: GetTileForCommand(_currentTile, d)))
+                .Where(t => !_map.ContainsKey(t.Tile) || _map[t.Tile] != TileType.Wall)
                 .OrderBy(t => t.Tile == previousTile) // Don't go directly back.
-                .ThenByDescending(t => !map.ContainsKey(t.Tile) || map[t.Tile] == TileType.Unknown) // Blank or unknowns first
-                .ThenByDescending(t => !map.ContainsKey(t.Tile) || map[t.Tile] == TileType.Empty) // Then empty
+                .ThenByDescending(t => !_map.ContainsKey(t.Tile) || _map[t.Tile] == TileType.Unknown) // Blank or unknowns first
+                .ThenByDescending(t => !_map.ContainsKey(t.Tile) || _map[t.Tile] == TileType.Empty) // Then empty
                 .Select(t => t.Direction)
                 .FirstOrDefault();
 
             if (!newInput.HasValue)
             {
-                PrintMap(map, currentTile);
+                PrintMap(_currentTile);
                 break;
             }
 
-            var targetTile = GetTileForCommand(currentTile, newInput.Value);
+            var targetTile = GetTileForCommand(_currentTile, newInput.Value);
 
-            inputs.Add((int)newInput.Value);
-            var (returnMode, result) = computer.RunProgram();
+            _computerInputs.Add((int)newInput.Value);
+            var (returnMode, result) = _computer.RunProgram();
 
             if (returnMode == ReturnMode.Terminate)
             {
@@ -212,44 +216,37 @@ public sealed class Day15 : BaseTestableDay
             switch ((StatusCode)result)
             {
                 case StatusCode.HitWall:
-                    map[targetTile] = TileType.Wall;
+                    _map[targetTile] = TileType.Wall;
                     break;
                 case StatusCode.Moved:
-                    map[targetTile] = TileType.Empty;
-                    previousTile = currentTile;
-                    currentTile = targetTile;
+                    _map[targetTile] = TileType.Empty;
+                    previousTile = _currentTile;
+                    _currentTile = targetTile;
                     break;
                 case StatusCode.HitOxygen:
-                    map[targetTile] = TileType.Oxygen;
-                    previousTile = currentTile;
-                    currentTile = targetTile;
+                    _map[targetTile] = TileType.Oxygen;
+                    previousTile = _currentTile;
+                    _currentTile = targetTile;
                     break;
             }
 
             //PrintMap(map, currentTile);
 
-            if (map[targetTile] == TileType.Oxygen)
+            if (_map[targetTile] == TileType.Oxygen)
             {
-                return (computer, inputs, map, currentTile);
+                return;
             }
         }
 
-        return null;
-    }
+        throw new ApplicationException("Failed to find the oxygen, I am a failure");
+;    }
 
     private Answer RunRepairSoftware()
     {
-        var result = FindOxygen();
+        FindOxygen();
 
-        if (!result.HasValue)
-        {
-            return -1;
-        }
+        var path = FindShortestPath(_currentTile, (0, 0));
 
-        var (_, _, map, currentLocation) = result.Value;
-
-        var path = FindShortestPath(map, currentLocation, (0, 0));
-        //PrintPath(map, path);
         return path.Count - 1; // This shouldn't actually work unless I happened to find the shortest path, which apparently I did.
 }
 
@@ -260,17 +257,10 @@ public sealed class Day15 : BaseTestableDay
 
     private Answer CalculatePart2Answer()
     {
-        var resultUntilOxygenFound = FindOxygen();
-
-        if (!resultUntilOxygenFound.HasValue)
-        {
-            return -1;
-        }
-
-        var (computer, computerInputs, map, currentLocation) = resultUntilOxygenFound.Value;
-
+        // In this particular case, note that the computer state is inherited from part 1!
+        // So now we can start flood-filling from our current location, which is where the oxygen is.
         var queue = new Queue<((int Row, int Column) Tile, int Distance)>();
-        queue.Enqueue((currentLocation, 0));
+        queue.Enqueue((_currentTile, 0));
 
         var explored = new HashSet<(int Row, int Column)>();
         var maxLevel = 0;
@@ -286,17 +276,17 @@ public sealed class Day15 : BaseTestableDay
 
             explored.Add(toExplore);
 
-            if (!map.ContainsKey(toExplore))
+            if (!_map.ContainsKey(toExplore))
             {
                 //PrintMap(map, currentLocation);
 
                 // There's a gap, so go there with the droid to fill it up.
-                var path = FindShortestPath(map, currentLocation, toExplore);
+                var path = FindShortestPath(_currentTile, toExplore);
 
                 foreach (var fromTo in path.Windows())
                 {
-                    computerInputs.Add((long)GetCommandForTileMove(fromTo.Item1, fromTo.Item2));
-                    var (returnMode, result) = computer.RunProgram();
+                    _computerInputs.Add((long)GetCommandForTileMove(fromTo.Item1, fromTo.Item2));
+                    var (returnMode, result) = _computer.RunProgram();
 
                     if (returnMode == ReturnMode.Terminate)
                     {
@@ -310,21 +300,21 @@ public sealed class Day15 : BaseTestableDay
 
                     if (fromTo.Item2 == path[^1]) // LAST!
                     {
-                        currentLocation = fromTo.Item1;
+                        _currentTile = fromTo.Item1;
                         var targetTile = fromTo.Item2;
 
                         switch ((StatusCode)result)
                         {
                             case StatusCode.HitWall:
-                                map[targetTile] = TileType.Wall;
+                                _map[targetTile] = TileType.Wall;
                                 break;
                             case StatusCode.Moved:
-                                map[targetTile] = TileType.Empty;
-                                currentLocation = targetTile;
+                                _map[targetTile] = TileType.Empty;
+                                _currentTile = targetTile;
                                 break;
                             case StatusCode.HitOxygen:
-                                map[targetTile] = TileType.Oxygen;
-                                currentLocation = targetTile;
+                                _map[targetTile] = TileType.Oxygen;
+                                _currentTile = targetTile;
                                 break;
                         }
                     }
@@ -337,7 +327,7 @@ public sealed class Day15 : BaseTestableDay
                 //PrintMap(map, currentLocation);
             }
 
-            if (map[toExplore] == TileType.Wall)
+            if (_map[toExplore] == TileType.Wall)
             {
                 continue;
             }
@@ -352,14 +342,14 @@ public sealed class Day15 : BaseTestableDay
         }
 
         // There seems to be more than 1 oxygen source. :/
-        var oxygenSpots = map.Where(kvp => kvp.Value == TileType.Oxygen).Select(kvp => kvp.Key).ToList();
+        var oxygenSpots = _map.Where(kvp => kvp.Value == TileType.Oxygen).Select(kvp => kvp.Key).ToList();
 
         if (oxygenSpots.Count == 1)
         {
             return maxLevel;
         }
 
-        PrintMap(map, currentLocation);
+        PrintMap(_currentTile);
         queue = new Queue<((int Row, int Column) Tile, int Distance)>();
         oxygenSpots.ForEach(s => queue.Enqueue((s, 0)));
 
@@ -377,7 +367,7 @@ public sealed class Day15 : BaseTestableDay
 
             explored.Add(toExplore);
 
-            if (map[toExplore] == TileType.Wall)
+            if (_map[toExplore] == TileType.Wall)
             {
                 continue;
             }
