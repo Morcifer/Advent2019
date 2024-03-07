@@ -1,4 +1,6 @@
-﻿namespace AdventOfCode;
+﻿using System.Diagnostics;
+
+namespace AdventOfCode;
 
 public enum MovementCommand
 {
@@ -98,10 +100,10 @@ public sealed class Day15 : BaseTestableDay
     {
         return command switch
         {
-            MovementCommand.North => (Row: currentTile.Row - 1, Column: currentTile.Column),
-            MovementCommand.South => (Row: currentTile.Row + 1, Column: currentTile.Column),
-            MovementCommand.West => (Row: currentTile.Row, Column: currentTile.Column - 1),
-            MovementCommand.East => (Row: currentTile.Row, Column: currentTile.Column + 1),
+            MovementCommand.North => currentTile with { Row = currentTile.Row - 1 },
+            MovementCommand.South => currentTile with { Row = currentTile.Row + 1 },
+            MovementCommand.West => currentTile with { Column = currentTile.Column - 1 },
+            MovementCommand.East => currentTile with { Column = currentTile.Column + 1 },
         };
     }
 
@@ -213,21 +215,14 @@ public sealed class Day15 : BaseTestableDay
                 break;
             }
 
-            switch ((StatusCode)result)
+            var previousTileBackup = previousTile;
+            previousTile = _currentTile;
+
+            ApplyComputerResultToMapAndTile(result, targetTile);
+
+            if (_currentTile != targetTile) // Movement didn't work, revert the update of the previous tile.
             {
-                case StatusCode.HitWall:
-                    _map[targetTile] = TileType.Wall;
-                    break;
-                case StatusCode.Moved:
-                    _map[targetTile] = TileType.Empty;
-                    previousTile = _currentTile;
-                    _currentTile = targetTile;
-                    break;
-                case StatusCode.HitOxygen:
-                    _map[targetTile] = TileType.Oxygen;
-                    previousTile = _currentTile;
-                    _currentTile = targetTile;
-                    break;
+                previousTile = previousTileBackup;
             }
 
             //PrintMap(map, currentTile);
@@ -259,6 +254,7 @@ public sealed class Day15 : BaseTestableDay
     {
         // In this particular case, note that the computer state is inherited from part 1!
         // So now we can start flood-filling from our current location, which is where the oxygen is.
+        // And if we realize that there's a place we don't have in the map, we can send the droid there.
         var queue = new Queue<((int Row, int Column) Tile, int Distance)>();
         queue.Enqueue((_currentTile, 0));
 
@@ -298,30 +294,14 @@ public sealed class Day15 : BaseTestableDay
                         throw new ApplicationException();
                     }
 
-                    if (fromTo.Item2 == path[^1]) // LAST!
-                    {
-                        _currentTile = fromTo.Item1;
-                        var targetTile = fromTo.Item2;
-
-                        switch ((StatusCode)result)
-                        {
-                            case StatusCode.HitWall:
-                                _map[targetTile] = TileType.Wall;
-                                break;
-                            case StatusCode.Moved:
-                                _map[targetTile] = TileType.Empty;
-                                _currentTile = targetTile;
-                                break;
-                            case StatusCode.HitOxygen:
-                                _map[targetTile] = TileType.Oxygen;
-                                _currentTile = targetTile;
-                                break;
-                        }
-                    }
-                    else if ((StatusCode)result == StatusCode.HitWall)
+                    // Our path should be valid, only the last command is allowed to hit a wall
+                    if (fromTo.Item2 != path[^1] && (StatusCode)result == StatusCode.HitWall)
                     {
                         throw new ApplicationException();
                     }
+
+                    var targetTile = fromTo.Item2;
+                    ApplyComputerResultToMapAndTile(result, targetTile);
                 }
 
                 //PrintMap(map, currentLocation);
@@ -341,47 +321,27 @@ public sealed class Day15 : BaseTestableDay
             }
         }
 
-        // There seems to be more than 1 oxygen source. :/
-        var oxygenSpots = _map.Where(kvp => kvp.Value == TileType.Oxygen).Select(kvp => kvp.Key).ToList();
-
-        if (oxygenSpots.Count == 1)
-        {
-            return maxLevel;
-        }
-
-        PrintMap(_currentTile);
-        queue = new Queue<((int Row, int Column) Tile, int Distance)>();
-        oxygenSpots.ForEach(s => queue.Enqueue((s, 0)));
-
-        explored = new HashSet<(int Row, int Column)>();
-        maxLevel = 0;
-
-        while (queue.Count > 0)
-        {
-            var (toExplore, level) = queue.Dequeue();
-
-            if (explored.Contains(toExplore))
-            {
-                continue;
-            }
-
-            explored.Add(toExplore);
-
-            if (_map[toExplore] == TileType.Wall)
-            {
-                continue;
-            }
-
-            maxLevel = Math.Max(maxLevel, level);
-
-            foreach (var delta in new List<(int Row, int Column)> { (-1, 0), (1, 0), (0, -1), (0, 1) })
-            {
-                var neighbour = (Row: toExplore.Row + delta.Row, Column: toExplore.Column + delta.Column);
-                queue.Enqueue((neighbour, level + 1));
-            }
-        }
+        Debug.Assert(_map.Count(kvp => kvp.Value == TileType.Oxygen) == 1);
 
         return maxLevel;
+    }
+
+    private void ApplyComputerResultToMapAndTile(long? result, (int row, int Column) targetTile)
+    {
+        switch ((StatusCode)result)
+        {
+            case StatusCode.HitWall:
+                _map[targetTile] = TileType.Wall;
+                break;
+            case StatusCode.Moved:
+                _map[targetTile] = TileType.Empty;
+                _currentTile = targetTile;
+                break;
+            case StatusCode.HitOxygen:
+                _map[targetTile] = TileType.Oxygen;
+                _currentTile = targetTile;
+                break;
+        }
     }
 
     public override ValueTask<string> Solve_1() => CalculatePart1Answer();
