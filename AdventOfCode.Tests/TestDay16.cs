@@ -12,7 +12,7 @@ public class TestDay16
     [InlineData("69317163492948606335995924319873", 100, "52432133")]
     public void Day16_CalculatePhases(string input, int phases, string expected)
     {
-        Day16.CalculatePhases(input, phases, 1, 0)[..8].Should().Be(expected);
+        Day16.CalculatePhases(input, phases)[..8].Should().Be(expected);
     }
 
     [Theory]
@@ -21,11 +21,11 @@ public class TestDay16
     [InlineData("03081770884921959731165446850517", "53553731")]
     public void Day16_CalculatePhasesWithSkip(string input, string expected)
     {
-        Day16.CalculatePhasesWithSkip(input, 100, 10000)[..8].Should().Be(expected);
+        Day16.CalculatePhasesWithLargeSkip(input, 100, 10000)[..8].Should().Be(expected);
     }
 
     [Theory]
-    [InlineData(typeof(Day16), RunMode.Real, "61149209", "-1")]
+    [InlineData(typeof(Day16), RunMode.Real, "61149209", "16178430")]
     public async Task Day16_Regression(Type type, RunMode runMode, string expectedPart1, string expectedPart2)
     {
         if (Activator.CreateInstance(type, runMode) is BaseTestableDay instance)

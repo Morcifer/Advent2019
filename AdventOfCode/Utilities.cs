@@ -48,6 +48,16 @@ public static class Utilities
         return source.Aggregate((long)1, (x, y) => x * y);
     }
 
+    public static IEnumerable<int> CumulativeSum(this IEnumerable<int> sequence)
+    {
+        int sum = 0;
+        foreach (var item in sequence)
+        {
+            sum += item;
+            yield return sum;
+        }
+    }
+
     public static IEnumerable<List<string>> Cluster(this IEnumerable<string> text)
     {
         var cluster = new List<string>();
