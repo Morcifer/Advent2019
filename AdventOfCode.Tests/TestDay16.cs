@@ -10,9 +10,18 @@ public class TestDay16
     [InlineData("80871224585914546619083218645595", 100, "24176176")]
     [InlineData("19617804207202209144916044189917", 100, "73745418")]
     [InlineData("69317163492948606335995924319873", 100, "52432133")]
-    public void Day16_SinglePhase(string input, int phases, string expected)
+    public void Day16_CalculatePhases(string input, int phases, string expected)
     {
-        Day16.CalculatePhases(input, phases)[..8].Should().Be(expected);
+        Day16.CalculatePhases(input, phases, 1, 0)[..8].Should().Be(expected);
+    }
+
+    [Theory]
+    [InlineData("03036732577212944063491565474664", "84462026")]
+    [InlineData("02935109699940807407585447034323", "78725270")]
+    [InlineData("03081770884921959731165446850517", "53553731")]
+    public void Day16_CalculatePhasesWithSkip(string input, string expected)
+    {
+        Day16.CalculatePhasesWithSkip(input, 100, 10000)[..8].Should().Be(expected);
     }
 
     [Theory]
