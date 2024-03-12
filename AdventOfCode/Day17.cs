@@ -2,11 +2,7 @@
 
 public sealed class Day17 : BaseTestableDay
 {
-    private readonly Computer _computer;
-    private readonly List<long> _computerInputs;
-
-    private (int Row, int Column, long Direction) _robot;
-    private HashSet<(int Row, int Column)> _map;
+    private readonly List<long> _input;
 
     public Day17() : this(RunMode.Real)
     {
@@ -16,33 +12,25 @@ public sealed class Day17 : BaseTestableDay
     {
         RunMode = runMode;
 
-        var program = File
+        _input = File
             .ReadAllLines(InputFilePath)
             .First()
             .Split(',')
             .Select(long.Parse)
             .ToList();
-
-        _computerInputs = new List<long>();
-        _computer = new Computer(program, _computerInputs);
-
-        _robot = (Row: 0, Column: 0, ' ');
-        _map = new HashSet<(int Row, int Column)>();
     }
 
-    private void PrintMap()
+    private void PrintMap(HashSet<(int Row, int Column)> map, (int Row, int Column) robot)
     {
-        var minRow = _map.Min(x => x.Row);
-        var maxRow = _map.Max(x => x.Row);
-        var minColumn = _map.Min(x => x.Column);
-        var maxColumn = _map.Max(x => x.Column);
+        var maxRow = map.Max(x => x.Row);
+        var maxColumn = map.Max(x => x.Column);
 
-        for (var row = minRow; row <= maxRow; row++)
+        for (var row = 0; row <= maxRow; row++)
         {
-            var toPrint = Enumerable.Range(minColumn, maxColumn - minColumn + 1)
-                .Select(column => (row, column) == (_robot.Row, _robot.Column)
+            var toPrint = Enumerable.Range(0, maxColumn + 1)
+                .Select(column => (row, column) == robot
                     ? 'R'
-                    : _map.Contains((row, column)) ? '#' : '.'
+                    : map.Contains((row, column)) ? '#' : '.'
                 )
                 .ToList();
 
@@ -52,23 +40,29 @@ public sealed class Day17 : BaseTestableDay
         Console.WriteLine();
     }
 
-    private void UpdateMap()
+    private (HashSet<(int Row, int Column)> Map, (int Row, int Column) Robot) GetMap()
     {
+        var computerInputs = new List<long>();
+        var computer = new Computer(_input, computerInputs);
+
+        var map = new HashSet<(int Row, int Column)>();
+        var robot = (Row: 0, Column: 0);
+
         var row = 0;
         var column = 0;
 
         while (true)
         {
-            var (returnMode, result) = _computer.RunProgram();
+            var (returnMode, result) = computer.RunProgram();
 
             if (returnMode == ReturnMode.Terminate)
             {
-                return;
+                return (map, robot);
             }
 
             if (returnMode == ReturnMode.Input)
             {
-                return;
+                return (map, robot);
             }
 
             switch (result.Value)
@@ -79,7 +73,7 @@ public sealed class Day17 : BaseTestableDay
                     break;
 
                 case 35: // "#"
-                    _map.Add((row, column));
+                    map.Add((row, column));
                     column++;
                     break;
 
@@ -88,8 +82,8 @@ public sealed class Day17 : BaseTestableDay
                     break;
 
                 default:
-                    _map.Add((row, column));
-                    _robot = (row, column, result.Value);
+                    map.Add((row, column));
+                    robot = (row, column);
                     column++;
                     break;
             }
@@ -98,27 +92,27 @@ public sealed class Day17 : BaseTestableDay
 
     private Answer CalculatePart1Answer()
     {
-        UpdateMap();
-        PrintMap();
+        var (map, robot) = GetMap();
+        PrintMap(map, robot);
 
         var deltas = new List<(int Row, int Column)>() { (-1, 0), (1, 0), (0, -1), (0, 1) };
         var intersections = new List<(int Row, int Column)>();
 
-        var maxRow = _map.Max(x => x.Row);
-        var maxColumn = _map.Max(x => x.Column);
+        var maxRow = map.Max(x => x.Row);
+        var maxColumn = map.Max(x => x.Column);
 
-        for (var row = 0; row < maxRow; row++)
+        for (var row = 0; row <= maxRow; row++)
         {
-            for (var column = 0; column < maxColumn; column++)
+            for (var column = 0; column <= maxColumn; column++)
             {
-                if (!_map.Contains((row, column)))
+                if (!map.Contains((row, column)))
                 {
                     continue;
                 }
 
                 var neighbours = deltas
                     .Select(d => (row + d.Row, column + d.Column))
-                    .Count(n => _map.Contains(n));
+                    .Count(n => map.Contains(n));
 
                 if (neighbours > 2)
                 {
