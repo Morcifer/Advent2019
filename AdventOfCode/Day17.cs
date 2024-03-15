@@ -1,8 +1,4 @@
-﻿using System.Data.Common;
-using System.Linq;
-using Spectre.Console;
-
-namespace AdventOfCode;
+﻿namespace AdventOfCode;
 
 public sealed class Day17 : BaseTestableDay
 {
@@ -76,12 +72,12 @@ public sealed class Day17 : BaseTestableDay
                     column = 0;
                     break;
 
-                case 35: // "#"
+                case '#': // 35
                     map.Add((row, column));
                     column++;
                     break;
 
-                case 46: // "."
+                case '.': // 46
                     column++;
                     break;
 
@@ -94,55 +90,17 @@ public sealed class Day17 : BaseTestableDay
         }
     }
 
-    private Answer CalculatePart1Answer()
+    private List<(char Rotate, int Step)> GetCommandSequence((int Row, int Column, char Orientation) robot, HashSet<(int Row, int Column)> map)
     {
-        var (map, _) = GetMap();
-        //PrintMap(map, robot);
-
-        var deltas = new List<(int Row, int Column)>() { (-1, 0), (1, 0), (0, -1), (0, 1) };
-        var intersections = new List<(int Row, int Column)>();
-
-        var maxRow = map.Max(x => x.Row);
-        var maxColumn = map.Max(x => x.Column);
-
-        for (var row = 0; row <= maxRow; row++)
-        {
-            for (var column = 0; column <= maxColumn; column++)
-            {
-                if (!map.Contains((row, column)))
-                {
-                    continue;
-                }
-
-                var neighbours = deltas
-                    .Select(d => (row + d.Row, column + d.Column))
-                    .Count(n => map.Contains(n));
-
-                if (neighbours > 2)
-                {
-                    intersections.Add((row, column));
-                }
-            }
-        }
-
-        return intersections.Select(i => i.Row * i.Column).Sum();
-    }
-
-    private Answer CalculatePart2Answer()
-    {
-        var (map, robot) = GetMap();
-        PrintMap(map, robot);
-
-        // R 6, L 10, R 10, R 10, R 10, L
-
         // Find sequence, hope that you don't have to turn at an intersection...
         var commandSequence = new List<(char Rotate, int Step)>();
-        var simulatedRobot = (robot.Row, robot.Column, robot.Orientation);
+
         var deltas = new List<(int, int)> { (0, 1), (0, -1), (1, 0), (-1, 0) };
         var endOfTheRoad = map
             .Where(spot => 1 == deltas.Count(d => map.Contains((spot.Row + d.Item1, spot.Column + d.Item2))))
             .First(spot => spot != (robot.Row, robot.Column));
 
+        var simulatedRobot = (robot.Row, robot.Column, robot.Orientation);
 
         while ((simulatedRobot.Row, simulatedRobot.Column) != endOfTheRoad && map.Contains((simulatedRobot.Row, simulatedRobot.Column)))
         {
@@ -193,7 +151,7 @@ public sealed class Day17 : BaseTestableDay
                     // Go to the final location before falling.
                     simulatedRobot = newOrientation switch
                     {
-                        '^' => simulatedRobot with { Row = simulatedRobot.Row - steps, Orientation = newOrientation},
+                        '^' => simulatedRobot with { Row = simulatedRobot.Row - steps, Orientation = newOrientation },
                         'v' => simulatedRobot with { Row = simulatedRobot.Row + steps, Orientation = newOrientation },
                         '<' => simulatedRobot with { Column = simulatedRobot.Column - steps, Orientation = newOrientation },
                         '>' => simulatedRobot with { Column = simulatedRobot.Column + steps, Orientation = newOrientation },
@@ -204,32 +162,71 @@ public sealed class Day17 : BaseTestableDay
             }
         }
 
+        return commandSequence;
+    }
+
+    private Answer CalculatePart1Answer()
+    {
+        var (map, _) = GetMap();
+        //PrintMap(map, robot);
+
+        var deltas = new List<(int Row, int Column)>() { (-1, 0), (1, 0), (0, -1), (0, 1) };
+        var intersections = new List<(int Row, int Column)>();
+
+        var maxRow = map.Max(x => x.Row);
+        var maxColumn = map.Max(x => x.Column);
+
+        for (var row = 0; row <= maxRow; row++)
+        {
+            for (var column = 0; column <= maxColumn; column++)
+            {
+                if (!map.Contains((row, column)))
+                {
+                    continue;
+                }
+
+                var neighbours = deltas
+                    .Select(d => (row + d.Row, column + d.Column))
+                    .Count(n => map.Contains(n));
+
+                if (neighbours > 2)
+                {
+                    intersections.Add((row, column));
+                }
+            }
+        }
+
+        return intersections.Select(i => i.Row * i.Column).Sum();
+    }
+
+    private Answer CalculatePart2Answer()
+    {
+        var (map, robot) = GetMap();
+        //PrintMap(map, robot);
+
+        var commandSequence = GetCommandSequence(robot, map);
+
+        var longCommand = string.Join(",", commandSequence.Select(c => $"{c.Rotate},{c.Step}"));
+
+        // This split was calculated manually.
+        var commandA = longCommand[..18]; // "R,6,L,10,R,10,R,10"
+        var commandB = longCommand[19..(19 + 14)]; // "L,10,L,12,R,10"
+        var commandC = longCommand[^13..]; // "R,6,L,12,L,10"
+
+        var sequence = longCommand.Replace(commandA, "A").Replace(commandB, "B").Replace(commandC, "C"); // "A,B,A,B,A,C,A,C,B,C"
+
+
+        var inputStringCounter = 0;
+        var inputStrings = new[] { sequence, commandA, commandB, commandC, "n" }; // Last input - continuous video feed
+
         var newProgram = _input.ToList();
         newProgram[0] = 2;
 
-        var programToEncode = new List<string>()
-        {
-            "A,B,A,B,A,C,A,C,B,C",
-            "R,6,L,10,R,10,R,10",
-            "L,10,L,12,R,10",
-            "R,6,L,12,L,10",
-        };
-
         var computerInputs = new List<long>();
-
-        foreach (var programLine in programToEncode)
-        {
-            computerInputs.AddRange(programLine.ToCharArray().Select(c => (long)c));
-            computerInputs.Add(10); // Newline.
-        }
-
-        computerInputs.Add((long)'n'); // continuous video feed
-        computerInputs.Add(10);
-
         var computer = new Computer(newProgram, computerInputs);
 
         var round = 0;
-        var outputs = new List<long>();
+        var outputString = "";
 
         while (true)
         {
@@ -243,25 +240,30 @@ public sealed class Day17 : BaseTestableDay
 
             if (returnMode == ReturnMode.Input)
             {
-                break;
+                Console.WriteLine($"Inputting {inputStrings[inputStringCounter]}");
+
+                computerInputs.AddRange(inputStrings[inputStringCounter++].ToCharArray().Select(c => (long)c));
+                computerInputs.Add(10); // Newline.
+                continue; // Will crash if I'm out of inputs, which is fine.
             }
 
-            if (result.Value != '.' && result.Value != '#' && result.Value != 10)
+            if (result.Value > 200) // Last one!
             {
-                Console.WriteLine($"Output {round}: {result.Value}");
-                outputs.Add(result.Value);
+                return result.Value;
             }
-            
 
-            //switch (result.Value)
-            //{
-            //    continue;
-            //}
+            if (result.Value == 10) // newline
+            {
+                Console.WriteLine(outputString);
+                outputString = "";
+            }
+            else
+            {
+                outputString += (char)result.Value;
+            }
         }
 
-        var temp = outputs.Skip(1).Select(c => (char)c).ToList();
-        Console.WriteLine(string.Join("", temp));
-        return outputs[^1];
+        return -1;
     }
 
     public override ValueTask<string> Solve_1() => CalculatePart1Answer();
