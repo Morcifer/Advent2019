@@ -1,4 +1,8 @@
-﻿namespace AdventOfCode;
+﻿using System.Data.Common;
+using System.Linq;
+using Spectre.Console;
+
+namespace AdventOfCode;
 
 public sealed class Day17 : BaseTestableDay
 {
@@ -20,7 +24,7 @@ public sealed class Day17 : BaseTestableDay
             .ToList();
     }
 
-    private void PrintMap(HashSet<(int Row, int Column)> map, (int Row, int Column) robot)
+    private void PrintMap(HashSet<(int Row, int Column)> map, (int Row, int Column, char Orientation) robot)
     {
         var maxRow = map.Max(x => x.Row);
         var maxColumn = map.Max(x => x.Column);
@@ -28,8 +32,8 @@ public sealed class Day17 : BaseTestableDay
         for (var row = 0; row <= maxRow; row++)
         {
             var toPrint = Enumerable.Range(0, maxColumn + 1)
-                .Select(column => (row, column) == robot
-                    ? 'R'
+                .Select(column => (row, column) == (robot.Row, robot.Column)
+                    ? robot.Orientation
                     : map.Contains((row, column)) ? '#' : '.'
                 )
                 .ToList();
@@ -40,13 +44,13 @@ public sealed class Day17 : BaseTestableDay
         Console.WriteLine();
     }
 
-    private (HashSet<(int Row, int Column)> Map, (int Row, int Column) Robot) GetMap()
+    private (HashSet<(int Row, int Column)> Map, (int Row, int Column, char Orientation) Robot) GetMap()
     {
         var computerInputs = new List<long>();
         var computer = new Computer(_input, computerInputs);
 
         var map = new HashSet<(int Row, int Column)>();
-        var robot = (Row: 0, Column: 0);
+        var robot = (Row: 0, Column: 0, Orientation: 'R');
 
         var row = 0;
         var column = 0;
@@ -83,7 +87,7 @@ public sealed class Day17 : BaseTestableDay
 
                 default:
                     map.Add((row, column));
-                    robot = (row, column);
+                    robot = (row, column, Convert.ToChar(result.Value));
                     column++;
                     break;
             }
@@ -92,8 +96,8 @@ public sealed class Day17 : BaseTestableDay
 
     private Answer CalculatePart1Answer()
     {
-        var (map, robot) = GetMap();
-        PrintMap(map, robot);
+        var (map, _) = GetMap();
+        //PrintMap(map, robot);
 
         var deltas = new List<(int Row, int Column)>() { (-1, 0), (1, 0), (0, -1), (0, 1) };
         var intersections = new List<(int Row, int Column)>();
@@ -126,7 +130,138 @@ public sealed class Day17 : BaseTestableDay
 
     private Answer CalculatePart2Answer()
     {
-        return -1;
+        var (map, robot) = GetMap();
+        PrintMap(map, robot);
+
+        // R 6, L 10, R 10, R 10, R 10, L
+
+        // Find sequence, hope that you don't have to turn at an intersection...
+        var commandSequence = new List<(char Rotate, int Step)>();
+        var simulatedRobot = (robot.Row, robot.Column, robot.Orientation);
+        var deltas = new List<(int, int)> { (0, 1), (0, -1), (1, 0), (-1, 0) };
+        var endOfTheRoad = map
+            .Where(spot => 1 == deltas.Count(d => map.Contains((spot.Row + d.Item1, spot.Column + d.Item2))))
+            .First(spot => spot != (robot.Row, robot.Column));
+
+
+        while ((simulatedRobot.Row, simulatedRobot.Column) != endOfTheRoad && map.Contains((simulatedRobot.Row, simulatedRobot.Column)))
+        {
+            // Turn left or right.
+            foreach (var turn in new List<char> { 'R', 'L', 'B' })
+            {
+                var newOrientation = (simulatedRobot.Orientation, turn) switch
+                {
+                    ('^', 'R') => '>',
+                    ('^', 'L') => '<',
+                    ('>', 'R') => 'v',
+                    ('>', 'L') => '^',
+                    ('v', 'R') => '<',
+                    ('v', 'L') => '>',
+                    ('<', 'R') => '^',
+                    ('<', 'L') => 'v',
+                };
+
+                var newLocation = newOrientation switch
+                {
+                    '^' => (Row: simulatedRobot.Row - 1, simulatedRobot.Column),
+                    'v' => (Row: simulatedRobot.Row + 1, simulatedRobot.Column),
+                    '<' => (simulatedRobot.Row, Column: simulatedRobot.Column - 1),
+                    '>' => (simulatedRobot.Row, Column: simulatedRobot.Column + 1),
+                };
+
+                // Found the right turn, now keep going until you're going to fall
+                if (map.Contains(newLocation))
+                {
+                    var steps = 0;
+
+                    while (map.Contains(newLocation))
+                    {
+                        steps++;
+
+                        newLocation = newOrientation switch
+                        {
+                            '^' => newLocation with { Row = newLocation.Row - 1 },
+                            'v' => newLocation with { Row = newLocation.Row + 1 },
+                            '<' => newLocation with { Column = newLocation.Column - 1 },
+                            '>' => newLocation with { Column = newLocation.Column + 1 },
+                        };
+                    }
+
+                    commandSequence.Add((turn, steps));
+                    //Console.WriteLine($"{turn} {steps}");
+
+                    // Go to the final location before falling.
+                    simulatedRobot = newOrientation switch
+                    {
+                        '^' => simulatedRobot with { Row = simulatedRobot.Row - steps, Orientation = newOrientation},
+                        'v' => simulatedRobot with { Row = simulatedRobot.Row + steps, Orientation = newOrientation },
+                        '<' => simulatedRobot with { Column = simulatedRobot.Column - steps, Orientation = newOrientation },
+                        '>' => simulatedRobot with { Column = simulatedRobot.Column + steps, Orientation = newOrientation },
+                    };
+
+                    break;
+                }
+            }
+        }
+
+        var newProgram = _input.ToList();
+        newProgram[0] = 2;
+
+        var programToEncode = new List<string>()
+        {
+            "A,B,A,B,A,C,A,C,B,C",
+            "R,6,L,10,R,10,R,10",
+            "L,10,L,12,R,10",
+            "R,6,L,12,L,10",
+        };
+
+        var computerInputs = new List<long>();
+
+        foreach (var programLine in programToEncode)
+        {
+            computerInputs.AddRange(programLine.ToCharArray().Select(c => (long)c));
+            computerInputs.Add(10); // Newline.
+        }
+
+        computerInputs.Add((long)'n'); // continuous video feed
+        computerInputs.Add(10);
+
+        var computer = new Computer(newProgram, computerInputs);
+
+        var round = 0;
+        var outputs = new List<long>();
+
+        while (true)
+        {
+            round++;
+            var (returnMode, result) = computer.RunProgram();
+
+            if (returnMode == ReturnMode.Terminate)
+            {
+                break;
+            }
+
+            if (returnMode == ReturnMode.Input)
+            {
+                break;
+            }
+
+            if (result.Value != '.' && result.Value != '#' && result.Value != 10)
+            {
+                Console.WriteLine($"Output {round}: {result.Value}");
+                outputs.Add(result.Value);
+            }
+            
+
+            //switch (result.Value)
+            //{
+            //    continue;
+            //}
+        }
+
+        var temp = outputs.Skip(1).Select(c => (char)c).ToList();
+        Console.WriteLine(string.Join("", temp));
+        return outputs[^1];
     }
 
     public override ValueTask<string> Solve_1() => CalculatePart1Answer();
