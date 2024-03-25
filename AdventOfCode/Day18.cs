@@ -87,8 +87,12 @@ public sealed class Day18 : BaseTestableDay
             }
         }
 
+        var counter = 0;
         foreach (var kVertex in vertices)
         {
+            Console.WriteLine($"At kVertex {counter} out of {vertices.Count}");
+            counter++;
+
             foreach (var iVertex in vertices)
             {
                 foreach (var jVertex in vertices)
@@ -111,6 +115,71 @@ public sealed class Day18 : BaseTestableDay
         return (distances, requiredKeys);
     }
 
+    private (Dictionary<GridSpot, int> Distances, Dictionary<GridSpot, HashSet<char>> RequiredKeys) ShortestPath(List<string> map, GridSpot start)
+    {
+        var deltas = new List<GridSpot> { (0, 1), (0, -1), (1, 0), (-1, 0) };
+
+        var queue = new Queue<(GridSpot Spot, HashSet<char> Keys, int Length)>();
+        queue.Enqueue((start, new HashSet<char>(), 0));
+
+        var explored = new HashSet<GridSpot>();
+
+        var distances = new Dictionary<GridSpot, int>();
+        var requiredKeys = new Dictionary<GridSpot, HashSet<char>>();
+
+        while (queue.Count > 0)
+        {
+            var (spotToExplore, keysToExplore, lengthToExplore) = queue.Dequeue();
+
+            if (explored.Contains(spotToExplore))
+            {
+                continue;
+            }
+
+            explored.Add(spotToExplore);
+
+            if (spotToExplore.Row < 0 || spotToExplore.Row >= map.Count)
+            {
+                continue;
+            }
+
+            if (spotToExplore.Column < 0 || spotToExplore.Column >= map[spotToExplore.Row].Length)
+            {
+                continue;
+            }
+
+            var newKeys = keysToExplore.ToHashSet();
+            var charToExplore = map[spotToExplore.Row][spotToExplore.Column];
+
+            if (map[spotToExplore.Row][spotToExplore.Column] == '#')
+            {
+                continue;
+            }
+
+            if (char.IsAsciiLetterUpper(charToExplore)) // Door
+            {
+                //Console.WriteLine($"Reached a dead end of door {charToExplore} at {spotToExplore}");
+                var key = char.ToLower(charToExplore);
+                newKeys.Add(key);
+            }
+
+            if (char.IsAsciiLetterLower(charToExplore)) // New key!
+            {
+                //Console.WriteLine($"Found a key {charToExplore} at {spotToExplore} for a total of {string.Join(", ", newKeys.OrderBy(c => c))}")
+                distances[spotToExplore] = lengthToExplore;
+                requiredKeys[spotToExplore] = newKeys;
+            }
+
+            foreach (var neighborDelta in deltas)
+            {
+                var neighbour = (spotToExplore.Row + neighborDelta.Row, spotToExplore.Column + neighborDelta.Column);
+                queue.Enqueue((neighbour, newKeys, lengthToExplore + 1));
+            }
+        }
+
+        return (distances, requiredKeys);
+    }
+
     private Answer CalculatePart1Answer()
     {
         foreach (var row in _map)
@@ -118,14 +187,25 @@ public sealed class Day18 : BaseTestableDay
             Console.WriteLine(row);
         }
 
-        Console.WriteLine("Calculating Floyd Warshall");
-        var (distances, requiredKeys) = FloydWarshall(_map);
-        Console.WriteLine("Floyd Warshall calculated");
-
-
         var entrance = Enumerable.Range(0, _map.Count)
             .SelectMany(row => Enumerable.Range(0, _map[row].Length).Select(column => (Row: row, Column: column)))
             .First(spot => _map[spot.Row][spot.Column] == '@');
+
+        var importantSpots = _keys.Values.Concat(new List<GridSpot>() { entrance }).ToList();
+
+        var distances = new Dictionary<(GridSpot, GridSpot), int>();
+        var requiredKeys = new Dictionary<(GridSpot, GridSpot), HashSet<char>>();
+
+        foreach (var importantSpot in importantSpots)
+        {
+            var (ds, ks) = ShortestPath(_map, importantSpot);
+
+            foreach (var key in ds.Keys)
+            {
+                distances[(importantSpot, key)] = ds[key];
+                requiredKeys[(importantSpot, key)] = ks[key];
+            }
+        }
 
         var queue = new PriorityQueue<(GridSpot Spot, HashSet<char> Keys, int Length), int>();
         queue.Enqueue((entrance, new HashSet<char>(), 0), 0);
@@ -185,7 +265,6 @@ public sealed class Day18 : BaseTestableDay
 
     private Answer CalculatePart2Answer()
     {
-        return -1;
         var entrance = Enumerable.Range(0, _map.Count)
             .SelectMany(row => Enumerable.Range(0, _map[row].Length).Select(column => (Row: row, Column: column)))
             .First(spot => _map[spot.Row][spot.Column] == '@');
@@ -200,10 +279,6 @@ public sealed class Day18 : BaseTestableDay
             Console.WriteLine(row);
         }
 
-        Console.WriteLine("Calculating Floyd Warshall");
-        var (distances, requiredKeys) = FloydWarshall(_map);
-        Console.WriteLine("Floyd Warshall calculated");
-
         var entrances = new List<GridSpot>()
         {
             (entrance.Row - 1, entrance.Column - 1),
@@ -211,6 +286,22 @@ public sealed class Day18 : BaseTestableDay
             (entrance.Row + 1, entrance.Column - 1),
             (entrance.Row + 1, entrance.Column + 1),
         };
+
+        var importantSpots = _keys.Values.Concat(entrances).ToList();
+
+        var distances = new Dictionary<(GridSpot, GridSpot), int>();
+        var requiredKeys = new Dictionary<(GridSpot, GridSpot), HashSet<char>>();
+
+        foreach (var importantSpot in importantSpots)
+        {
+            var (ds, ks) = ShortestPath(_map, importantSpot);
+
+            foreach (var key in ds.Keys)
+            {
+                distances[(importantSpot, key)] = ds[key];
+                requiredKeys[(importantSpot, key)] = ks[key];
+            }
+        }
 
         var queue = new PriorityQueue<(GridSpot Spot1, GridSpot Spot2, GridSpot Spot3, GridSpot Spot4, HashSet<char> Keys, int Length), int>();
         queue.Enqueue((entrances[0], entrances[1], entrances[2], entrances[3], new HashSet<char>(), 0), 0);
@@ -256,6 +347,12 @@ public sealed class Day18 : BaseTestableDay
                         3 => spotToExplore3,
                         4 => spotToExplore4,
                     };
+
+                    // Can't reach this key for this bot.
+                    if (!requiredKeys.ContainsKey((spotToExplore, newTargetSpot)))
+                    {
+                        continue;
+                    }
 
                     var neededKeysToTarget = requiredKeys[(spotToExplore, newTargetSpot)];
 
