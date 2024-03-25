@@ -1,10 +1,12 @@
 ﻿namespace AdventOfCode;
 
+using System.Linq;
 using GridSpot = (int Row, int Column);
 
 public sealed class Day18 : BaseTestableDay
 {
-    private readonly List<string> _input;
+    private readonly List<string> _map;
+    private readonly Dictionary<char, GridSpot> _keys;
 
     public Day18() : this(RunMode.Real)
     {
@@ -14,37 +16,119 @@ public sealed class Day18 : BaseTestableDay
     {
         RunMode = runMode;
 
-        _input = File
+        _map = File
             .ReadAllLines(InputFilePath)
             .ToList();
+
+        _keys = _map
+            .SelectMany((row, rowIndex) => row.ToCharArray().Select((character, columnIndex) => (rowIndex, columnIndex, character)))
+            .Where(t => char.IsAsciiLetterLower(t.character))
+            .ToDictionary(
+                t => t.character,
+                t => (t.rowIndex, t.columnIndex)
+            );
+    }
+
+    private (Dictionary<(GridSpot, GridSpot), int> Distances, Dictionary<(GridSpot, GridSpot), HashSet<char>> RequiredKeys) FloydWarshall(List<string> map)
+    {
+        var vertices = Enumerable.Range(0, map.Count)
+            .SelectMany(row => Enumerable.Range(0, map[row].Length).Select(column => (Row: row, Column: column)))
+            .Where(spot => map[spot.Row][spot.Column] != '#')
+            .ToList();
+
+        var distances = vertices
+            .SelectMany(from => vertices.Select(to => (from, to)))
+            .ToDictionary(t => (t.from, t.to), _ => 1000000); // I miss infinity.
+
+        var requiredKeys = distances
+            .Keys
+            .ToDictionary(t => t, _ => new HashSet<char>());
+
+        var deltas = new List<GridSpot> { (0, 0), (0, 1), (0, -1), (1, 0), (-1, 0)};
+
+        foreach (var vertex in vertices)
+        {
+            foreach (var delta in deltas)
+            {
+                GridSpot neighbour = (vertex.Row + delta.Row, vertex.Column + delta.Column);
+
+                if (neighbour.Row < 0 || neighbour.Row >= map.Count)
+                {
+                    continue;
+                }
+
+                if (neighbour.Column < 0 || neighbour.Column >= map[neighbour.Row].Length)
+                {
+                    continue;
+                }
+
+                if (map[neighbour.Row][neighbour.Column] == '#')
+                {
+                    continue;
+                }
+
+                // I prefer repeat assignments to extra code in this case.
+                distances[(vertex, neighbour)] = vertex == neighbour ? 0 : 1;
+                distances[(neighbour, vertex)] = vertex == neighbour ? 0 : 1;
+
+                if (char.IsAsciiLetterUpper(map[vertex.Row][vertex.Column]))
+                {
+                    var key = char.ToLower(map[vertex.Row][vertex.Column]);
+                    requiredKeys[(vertex, neighbour)].Add(key);
+                    requiredKeys[(neighbour, vertex)].Add(key);
+                }
+
+                if (char.IsAsciiLetterUpper(map[neighbour.Row][neighbour.Column]))
+                {
+                    var key = char.ToLower(map[neighbour.Row][neighbour.Column]);
+                    requiredKeys[(vertex, neighbour)].Add(key);
+                    requiredKeys[(neighbour, vertex)].Add(key);
+                }
+            }
+        }
+
+        foreach (var kVertex in vertices)
+        {
+            foreach (var iVertex in vertices)
+            {
+                foreach (var jVertex in vertices)
+                {
+                    if (distances[(iVertex, jVertex)] <= distances[(iVertex, kVertex)] + distances[(kVertex, jVertex)])
+                    {
+                        continue;
+                    }
+
+                    distances[(iVertex, jVertex)] = distances[(iVertex, kVertex)] + distances[(kVertex, jVertex)];
+
+                    var newKeys = requiredKeys[(iVertex, kVertex)].ToHashSet();
+                    newKeys.UnionWith(requiredKeys[(kVertex, jVertex)]);
+
+                    requiredKeys[(iVertex, jVertex)] = newKeys;
+                }
+            }
+        }
+
+        return (distances, requiredKeys);
     }
 
     private Answer CalculatePart1Answer()
     {
-        var deltas = new List<GridSpot> { (0, 1), (0, -1), (1, 0), (-1, 0) };
+        foreach (var row in _map)
+        {
+            Console.WriteLine(row);
+        }
 
-        //foreach (var row in _input)
-        //{
-        //    Console.WriteLine(row);
-        //}
+        Console.WriteLine("Calculating Floyd Warshall");
+        var (distances, requiredKeys) = FloydWarshall(_map);
+        Console.WriteLine("Floyd Warshall calculated");
 
-        // Option 1:
-        // Find locations of keys and doors.
-        // Find shortest paths between all keys and all doors.
-        // Might not be useful, if there are two possible ways and one passes through another key or can't pass through a door.
 
-        // Option 2:
-        // BFS with the nodes being location and keys in inventory (and length). Cut branch if you each a door you don't have the key for.
-        var entrance = Enumerable.Range(0, _input.Count)
-            .SelectMany(row => Enumerable.Range(0, _input[row].Length).Select(column => (Row: row, Column: column)))
-            .First(spot => _input[spot.Row][spot.Column] == '@');
+        var entrance = Enumerable.Range(0, _map.Count)
+            .SelectMany(row => Enumerable.Range(0, _map[row].Length).Select(column => (Row: row, Column: column)))
+            .First(spot => _map[spot.Row][spot.Column] == '@');
 
-        var allKeys = _input
-            .SelectMany(row => row.ToCharArray().Where(c => char.IsAsciiLetterLower(c)))
-            .ToHashSet();
-
-        var queue = new Queue<(GridSpot Spot, HashSet<char> Keys, int Length)>();
-        queue.Enqueue((entrance, new HashSet<char>(), 0));
+        var queue = new PriorityQueue<(GridSpot Spot, HashSet<char> Keys, int Length), int>();
+        queue.Enqueue((entrance, new HashSet<char>(), 0), 0);
 
         var explored = new HashSet<(GridSpot Spot, string Keys)>();
 
@@ -52,52 +136,47 @@ public sealed class Day18 : BaseTestableDay
         {
             var (spotToExplore, keysToExplore, lengthToExplore) = queue.Dequeue();
 
-            if (keysToExplore.Count == allKeys.Count)
+            if (queue.Count % 1000 == 0)
             {
-                return lengthToExplore - 1;
+                Console.WriteLine($"Queue size is {queue.Count}, keys: {string.Join(", ", keysToExplore.OrderBy(c => c))} ({keysToExplore.Count} out of {_keys.Count})");
             }
 
+            if (keysToExplore.Count == _keys.Count)
+            {
+                return lengthToExplore;
+            }
+
+            // Do I know this tree?
             if (explored.Contains((spotToExplore, string.Join("", keysToExplore.OrderBy(c => c)))))
             {
                 continue;
             }
 
-            if (spotToExplore.Row < 0 || spotToExplore.Row >= _input.Count)
+            explored.Add((spotToExplore, string.Join("", keysToExplore.OrderBy(c => c))));
+
+            foreach (var (newTargetKey, newTargetSpot) in _keys)
             {
-                continue;
-            }
+                // We don't need this key anymore.
+                if (keysToExplore.Contains(newTargetKey))
+                {
+                    continue;
+                }
 
-            if (spotToExplore.Column < 0 || spotToExplore.Column >= _input[spotToExplore.Row].Length)
-            {
-                continue;
-            }
+                var neededKeysToTarget = requiredKeys[(spotToExplore, newTargetSpot)];
+                
+                // We don't have the keys for this yet
+                if (!neededKeysToTarget.IsSubsetOf(keysToExplore))
+                {
+                    continue;
+                }
 
-            var newKeys = keysToExplore.ToHashSet();
-            var charToExplore = _input[spotToExplore.Row][spotToExplore.Column];
+                var newKeys = keysToExplore.ToHashSet();
+                newKeys.Add(newTargetKey);
 
-            explored.Add((spotToExplore, string.Join("", newKeys.OrderBy(c => c))));
+                var lengthToTarget = distances[(spotToExplore, newTargetSpot)];
+                var newLength = lengthToExplore + lengthToTarget;
 
-            if (charToExplore == '#')
-            {
-                continue;
-            }
-
-            if (char.IsAsciiLetterUpper(charToExplore) && !newKeys.Contains(char.ToLower(charToExplore))) // Door!
-            {
-                //Console.WriteLine($"Reached a dead end of door {charToExplore} at {spotToExplore}");
-                continue;
-            }
-
-            if (char.IsAsciiLetterLower(charToExplore)) // New key!
-            {
-                //Console.WriteLine($"Found a key {charToExplore} at {spotToExplore} for a total of {string.Join(", ", newKeys.OrderBy(c => c))}");
-                newKeys.Add(charToExplore);
-            }
-
-            foreach (var neighborDelta in deltas)
-            {
-                var neighbour = (spotToExplore.Row + neighborDelta.Row, spotToExplore.Column + neighborDelta.Column);
-                queue.Enqueue((neighbour, newKeys, lengthToExplore + 1));
+                queue.Enqueue((newTargetSpot, newKeys, newLength), newLength);
             }
         }
 
@@ -106,21 +185,24 @@ public sealed class Day18 : BaseTestableDay
 
     private Answer CalculatePart2Answer()
     {
-        var deltas = new List<GridSpot> { (0, 1), (0, -1), (1, 0), (-1, 0) };
-
-        var entrance = Enumerable.Range(0, _input.Count)
-            .SelectMany(row => Enumerable.Range(0, _input[row].Length).Select(column => (Row: row, Column: column)))
-            .First(spot => _input[spot.Row][spot.Column] == '@');
+        return -1;
+        var entrance = Enumerable.Range(0, _map.Count)
+            .SelectMany(row => Enumerable.Range(0, _map[row].Length).Select(column => (Row: row, Column: column)))
+            .First(spot => _map[spot.Row][spot.Column] == '@');
 
         // Replace part 1 entrance with 4 separate entrances
-        _input[entrance.Row - 1] = _input[entrance.Row - 1][..(entrance.Column - 1)] + "@#@" + _input[entrance.Row - 1][(entrance.Column + 2)..];
-        _input[entrance.Row] = _input[entrance.Row][..(entrance.Column - 1)] + "###" + _input[entrance.Row][(entrance.Column + 2)..];
-        _input[entrance.Row + 1] = _input[entrance.Row + 1][..(entrance.Column - 1)] + "@#@" + _input[entrance.Row + 1][(entrance.Column + 2)..];
+        _map[entrance.Row - 1] = _map[entrance.Row - 1][..(entrance.Column - 1)] + "@#@" + _map[entrance.Row - 1][(entrance.Column + 2)..];
+        _map[entrance.Row] = _map[entrance.Row][..(entrance.Column - 1)] + "###" + _map[entrance.Row][(entrance.Column + 2)..];
+        _map[entrance.Row + 1] = _map[entrance.Row + 1][..(entrance.Column - 1)] + "@#@" + _map[entrance.Row + 1][(entrance.Column + 2)..];
 
-        foreach (var row in _input)
+        foreach (var row in _map)
         {
             Console.WriteLine(row);
         }
+
+        Console.WriteLine("Calculating Floyd Warshall");
+        var (distances, requiredKeys) = FloydWarshall(_map);
+        Console.WriteLine("Floyd Warshall calculated");
 
         var entrances = new List<GridSpot>()
         {
@@ -130,30 +212,23 @@ public sealed class Day18 : BaseTestableDay
             (entrance.Row + 1, entrance.Column + 1),
         };
 
-        var allKeys = _input
-            .SelectMany(row => row.ToCharArray().Where(c => char.IsAsciiLetterLower(c)))
-            .ToHashSet();
-
-        var queue = new Queue<(GridSpot Spot1, GridSpot Spot2, GridSpot Spot3, GridSpot Spot4, int LatestMove, HashSet<char> Keys, int Length)>();
-        queue.Enqueue((entrances[0], entrances[1], entrances[2], entrances[3], 1, new HashSet<char>(), 0));
-        queue.Enqueue((entrances[0], entrances[1], entrances[2], entrances[3], 2, new HashSet<char>(), 0));
-        queue.Enqueue((entrances[0], entrances[1], entrances[2], entrances[3], 3, new HashSet<char>(), 0));
-        queue.Enqueue((entrances[0], entrances[1], entrances[2], entrances[3], 4, new HashSet<char>(), 0));
+        var queue = new PriorityQueue<(GridSpot Spot1, GridSpot Spot2, GridSpot Spot3, GridSpot Spot4, HashSet<char> Keys, int Length), int>();
+        queue.Enqueue((entrances[0], entrances[1], entrances[2], entrances[3], new HashSet<char>(), 0), 0);
 
         var explored = new HashSet<(GridSpot Spot1, GridSpot Spot2, GridSpot Spot3, GridSpot Spot4, string Keys)>();
 
         while (queue.Count > 0)
         {
-            var (spotToExplore1, spotToExplore2, spotToExplore3, spotToExplore4, latestMove, keysToExplore, lengthToExplore) = queue.Dequeue();
+            var (spotToExplore1, spotToExplore2, spotToExplore3, spotToExplore4, keysToExplore, lengthToExplore) = queue.Dequeue();
 
-            if (queue.Count % 1000000 == 0)
+            if (queue.Count % 1000 == 0)
             {
-                Console.WriteLine($"Queue size is {queue.Count}, keys: {string.Join(", ", keysToExplore.OrderBy(c => c))} ({keysToExplore.Count} out of {allKeys.Count})");
+                Console.WriteLine($"Queue size is {queue.Count}, keys: {string.Join(", ", keysToExplore.OrderBy(c => c))} ({keysToExplore.Count} out of {_keys.Count})");
             }
 
-            if (keysToExplore.Count == allKeys.Count)
+            if (keysToExplore.Count == _keys.Count)
             {
-                return lengthToExplore - 1;
+                return lengthToExplore;
             }
 
             var key = (spotToExplore1, spotToExplore2, spotToExplore3, spotToExplore4, string.Join("", keysToExplore.OrderBy(c => c)));
@@ -165,67 +240,56 @@ public sealed class Day18 : BaseTestableDay
 
             explored.Add(key);
 
-            var (rowToCheck, columnToCheck) = latestMove switch
-            {
-                1 => spotToExplore1,
-                2 => spotToExplore2,
-                3 => spotToExplore3,
-                4 => spotToExplore4,
-            };
-
-            if (rowToCheck < 0 || rowToCheck >= _input.Count)
-            {
-                continue;
-            }
-
-            if (columnToCheck < 0 || columnToCheck >= _input[rowToCheck].Length)
-            {
-                continue;
-            }
-
-            var newKeys = keysToExplore.ToHashSet();
-            var charToExplore = _input[rowToCheck][columnToCheck];
-
-            if (charToExplore == '#')
-            {
-                continue;
-            }
-
-            if (char.IsAsciiLetterUpper(charToExplore) && !newKeys.Contains(char.ToLower(charToExplore))) // Door!
-            {
-                //Console.WriteLine($"Reached a dead end of door {charToExplore} at ({rowToCheck}, {columnToCheck})");
-                continue;
-            }
-
-            if (char.IsAsciiLetterLower(charToExplore)) // New key!
-            {
-                //Console.WriteLine($"Found a key {charToExplore} at ({rowToCheck}, {columnToCheck}) for a total of {string.Join(", ", newKeys.OrderBy(c => c))}");
-                newKeys.Add(charToExplore);
-            }
-
             for (var botToMove = 1; botToMove <= 4; botToMove++)
             {
-                foreach (var neighborDelta in deltas)
+                foreach (var (newTargetKey, newTargetSpot) in _keys)
                 {
+                    if (keysToExplore.Contains(newTargetKey))
+                    {
+                        continue;
+                    }
+
+                    var spotToExplore = botToMove switch
+                    {
+                        1 => spotToExplore1,
+                        2 => spotToExplore2,
+                        3 => spotToExplore3,
+                        4 => spotToExplore4,
+                    };
+
+                    var neededKeysToTarget = requiredKeys[(spotToExplore, newTargetSpot)];
+
+                    // We don't have the keys for this yet
+                    if (!neededKeysToTarget.IsSubsetOf(keysToExplore))
+                    {
+                        continue;
+                    }
+
                     var (neighbour1, neighbour2, neighbour3, neighbour4) = (spotToExplore1, spotToExplore2, spotToExplore3, spotToExplore4);
                     
                     switch (botToMove)
                     {
                         case 1:
-                            neighbour1 = (neighbour1.Row + neighborDelta.Row, neighbour1.Column + neighborDelta.Column);
+                            neighbour1 = newTargetSpot;
                             break;
                         case 2:
-                            neighbour2 = (neighbour2.Row + neighborDelta.Row, neighbour2.Column + neighborDelta.Column);
+                            neighbour2 = newTargetSpot;
                             break;
                         case 3:
-                            neighbour3 = (neighbour3.Row + neighborDelta.Row, neighbour3.Column + neighborDelta.Column);
+                            neighbour3 = newTargetSpot;
                             break;
                         case 4:
-                            neighbour4 = (neighbour4.Row + neighborDelta.Row, neighbour4.Column + neighborDelta.Column);
+                            neighbour4 = newTargetSpot;
                             break;
                     }
 
-                    queue.Enqueue((neighbour1, neighbour2, neighbour3, neighbour4, botToMove, newKeys, lengthToExplore + 1));
+                    var newKeys = keysToExplore.ToHashSet();
+                    newKeys.Add(newTargetKey);
+
+                    var lengthToTarget = distances[(spotToExplore, newTargetSpot)];
+                    var newLength = lengthToExplore + lengthToTarget;
+
+                    queue.Enqueue((neighbour1, neighbour2, neighbour3, neighbour4, newKeys, newLength), newLength);
                 }
             }
         }
