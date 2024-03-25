@@ -1,6 +1,4 @@
-﻿using Spectre.Console;
-
-namespace AdventOfCode;
+﻿namespace AdventOfCode;
 
 using GridSpot = (int Row, int Column);
 
@@ -24,32 +22,40 @@ public sealed class Day19 : BaseTestableDay
             .ToList();
     }
 
-    private Answer CalculatePart1Answer()
+    private char InvestigateSpot(GridSpot spot)
+    {
+        var computerInputs = new List<long>();
+        var computer = new Computer(_input, computerInputs);
+
+        computerInputs.Add(spot.Column);
+        computerInputs.Add(spot.Row);
+
+        var results = computer.RunProgramToTermination();
+        var result = results[^1];
+
+        return result == 0 ? '.' : '#';
+    }
+
+    private char[,] SearchFirstPartOfGrid()
     {
         var known = new char[50, 50];
-
-        var currentLocation = new GridSpot(0, 0);
 
         for (var row = 0; row < 50; row++)
         {
             for (var column = 0; column < 50; column++)
             {
-                currentLocation = (row, column);
-
-                var computerInputs = new List<long>();
-                var computer = new Computer(_input, computerInputs);
-
-                computerInputs.Add(currentLocation.Column);
-                computerInputs.Add(currentLocation.Row);
-
-                var results = computer.RunProgramToTermination();
-                var result = results[^1];
-
-                var found = result == 0 ? '.' : '#';
-                known[currentLocation.Row, currentLocation.Column] = found;
-                Console.WriteLine($"Grid spot {currentLocation} is {found}");
+                var found = InvestigateSpot((row, column));
+                known[row, column] = found;
+                //Console.WriteLine($"Grid spot {location} is {found}");
             }
         }
+
+        return known;
+    }
+
+    private Answer CalculatePart1Answer()
+    {
+        var known = SearchFirstPartOfGrid();
 
         var counter = 0;
 
@@ -67,7 +73,7 @@ public sealed class Day19 : BaseTestableDay
                 row.Add(known[i, j]);
             }
 
-            Console.WriteLine($"{string.Join("", row)}");
+            //Console.WriteLine($"{string.Join("", row)}");
         }
 
         return counter;
@@ -75,7 +81,28 @@ public sealed class Day19 : BaseTestableDay
 
     private Answer CalculatePart2Answer()
     {
-        return -1;
+        var known = SearchFirstPartOfGrid();
+
+        var row = 49;
+
+        var first = Enumerable.Range(0, 50).Where(c => known[row, c] == '#').Min();
+        var last = Enumerable.Range(0, 50).Where(c => known[row, c] == '#').Max();
+
+        var rowRanges = new Dictionary<int, (int First, int Last)>() { { row++, (first, last) }, };
+
+        for (;;row++)
+        {
+            first = Enumerable.Range(-2, 5).Select(d => first + d).Where(column => InvestigateSpot((row, column)) == '#').Min();
+            last = Enumerable.Range(-2, 5).Select(d => last + d).Where(column => InvestigateSpot((row, column)) == '#').Max();
+            rowRanges[row] = (first, last);
+
+            if (row >= 200 && rowRanges[row - 99].First <= first + 99 && first + 99 <= rowRanges[row - 99].Last)
+            {
+                return 10000 * first + (row - 99);
+            }
+
+            //Console.WriteLine($"Range in row {row} is ({first}, {last}) (width {last - first + 1})");
+        }
     }
 
     public override ValueTask<string> Solve_1() => CalculatePart1Answer();
