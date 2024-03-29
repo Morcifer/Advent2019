@@ -6,8 +6,9 @@ public sealed class Day20: BaseTestableDay
 {
     private readonly List<string> _map;
     private readonly Dictionary<string, (GridSpot, GridSpot)> _portals;
+    private readonly Dictionary<GridSpot, GridSpot> _portalsFromTo;
 
-    public Day20() : this(RunMode.Test)
+    public Day20() : this(RunMode.Real)
     {
     }
 
@@ -32,10 +33,10 @@ public sealed class Day20: BaseTestableDay
         var mapHeight = _map.Count;
         var mapLength = _map[0].Length;
 
-        foreach (var row in _map)
-        {
-            Console.WriteLine(row);
-        }
+        //foreach (var row in _map)
+        //{
+        //    Console.WriteLine(row);
+        //}
 
         var portalLocations = new List<(string, GridSpot)>(); // These are grid spots in the input, not the map.
 
@@ -53,6 +54,12 @@ public sealed class Day20: BaseTestableDay
                 }
 
                 var name = $"{input[row][column]}{input[row + 1][column]}";
+
+                if (name.Contains(' '))
+                {
+                    continue;
+                }
+
                 portalLocations.Add((name, (row + 2, column)));
             }
 
@@ -64,6 +71,12 @@ public sealed class Day20: BaseTestableDay
                 }
 
                 var name = $"{input[row][column]}{input[row + 1][column]}";
+
+                if (name.Contains(' '))
+                {
+                    continue;
+                }
+
                 portalLocations.Add((name, (row - 1, column)));
             }
         }
@@ -82,6 +95,12 @@ public sealed class Day20: BaseTestableDay
                 }
 
                 var name = $"{input[row][column]}{input[row][column + 1]}";
+
+                if (name.Contains(' '))
+                {
+                    continue;
+                }
+
                 portalLocations.Add((name, (row, column + 2)));
             }
 
@@ -93,6 +112,12 @@ public sealed class Day20: BaseTestableDay
                 }
 
                 var name = $"{input[row][column]}{input[row][column + 1]}";
+
+                if (name.Contains(' '))
+                {
+                    continue;
+                }
+
                 portalLocations.Add((name, (row, column - 1)));
             }
         }
@@ -104,23 +129,26 @@ public sealed class Day20: BaseTestableDay
                 g => g.Key,
                 g => g.Count() == 1 ? (g.First().Item2, g.First().Item2) : (g.First().Item2, g.Skip(1).First().Item2)
             );
+
+        _portalsFromTo = _portals
+            .Where(kvp => kvp.Key != "AA" && kvp.Key != "ZZ")
+            .Select(kvp => kvp.Value)
+            .SelectMany(t => new List<(GridSpot, GridSpot)> { (t.Item1, t.Item2), (t.Item2, t.Item1) })
+            .ToDictionary(t => t.Item1, t => t.Item2);
     }
 
-    private (Dictionary<GridSpot, int> Distances, Dictionary<GridSpot, HashSet<char>> RequiredKeys) ShortestPath(GridSpot start)
+    private int ShortestPath(GridSpot start, GridSpot end)
     {
         var deltas = new List<GridSpot> { (0, 1), (0, -1), (1, 0), (-1, 0) };
 
-        var queue = new Queue<(GridSpot Spot, HashSet<char> Keys, int Length)>();
-        queue.Enqueue((start, new HashSet<char>(), 0));
+        var queue = new Queue<(GridSpot Spot, int Length)>();
+        queue.Enqueue((start, 0));
 
         var explored = new HashSet<GridSpot>();
 
-        var distances = new Dictionary<GridSpot, int>();
-        var requiredKeys = new Dictionary<GridSpot, HashSet<char>>();
-
         while (queue.Count > 0)
         {
-            var (spotToExplore, keysToExplore, lengthToExplore) = queue.Dequeue();
+            var (spotToExplore, lengthToExplore) = queue.Dequeue();
 
             if (explored.Contains(spotToExplore))
             {
@@ -129,54 +157,46 @@ public sealed class Day20: BaseTestableDay
 
             explored.Add(spotToExplore);
 
-            if (spotToExplore.Row < 0 || spotToExplore.Row >= _map.Count)
+
+            if (spotToExplore == end)
             {
-                continue;
+                return lengthToExplore;
             }
 
-            if (spotToExplore.Column < 0 || spotToExplore.Column >= _map[spotToExplore.Row].Length)
+            if (_portalsFromTo.TryGetValue(spotToExplore, out var otherSide))
             {
-                continue;
-            }
-
-            var newKeys = keysToExplore.ToHashSet();
-            var charToExplore = _map[spotToExplore.Row][spotToExplore.Column];
-
-            if (_map[spotToExplore.Row][spotToExplore.Column] == '#')
-            {
-                continue;
-            }
-
-            if (char.IsAsciiLetterUpper(charToExplore)) // Door
-            {
-                var key = char.ToLower(charToExplore);
-                newKeys.Add(key);
-            }
-
-            if (char.IsAsciiLetterLower(charToExplore)) // New key!
-            {
-                distances[spotToExplore] = lengthToExplore;
-                requiredKeys[spotToExplore] = newKeys;
+                queue.Enqueue((otherSide, lengthToExplore + 1));
             }
 
             foreach (var neighborDelta in deltas)
             {
-                var neighbour = (spotToExplore.Row + neighborDelta.Row, spotToExplore.Column + neighborDelta.Column);
-                queue.Enqueue((neighbour, newKeys, lengthToExplore + 1));
+                var neighbour = new GridSpot(spotToExplore.Row + neighborDelta.Row, spotToExplore.Column + neighborDelta.Column);
+
+                if (neighbour.Row < 0 || neighbour.Row >= _map.Count)
+                {
+                    continue;
+                }
+
+                if (neighbour.Column < 0 || neighbour.Column >= _map[neighbour.Row].Length)
+                {
+                    continue;
+                }
+
+                if (_map[neighbour.Row][neighbour.Column] is '#' or ' ')
+                {
+                    continue;
+                }
+
+                queue.Enqueue((neighbour, lengthToExplore + 1));
             }
         }
 
-        return (distances, requiredKeys);
+        return -1;
     }
 
     private Answer CalculatePart1Answer()
     {
-        foreach (var row in _map)
-        {
-            Console.WriteLine(row);
-        }
-
-        return -1;
+        return ShortestPath(_portals["AA"].Item1, _portals["ZZ"].Item1);
     }
 
     private Answer CalculatePart2Answer()
