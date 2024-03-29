@@ -23,9 +23,6 @@ public sealed class Day20: BaseTestableDay
         var inputHeight = input.Count;
         var inputLength = input[0].Length;
 
-        // The map should skip the first and last rows and columns.
-        // And the portals are then found and marked.
-
         _map = input[2..^2]
             .Select(s => string.Join("", s[2..^2].Select(c => char.IsAsciiLetter(c) ? ' ' : c)))
             .ToList();
@@ -137,35 +134,44 @@ public sealed class Day20: BaseTestableDay
             .ToDictionary(t => t.Item1, t => t.Item2);
     }
 
-    private int ShortestPath(GridSpot start, GridSpot end)
+    private int ShortestPath(GridSpot start, GridSpot end, bool ignoreLevels)
     {
         var deltas = new List<GridSpot> { (0, 1), (0, -1), (1, 0), (-1, 0) };
 
-        var queue = new Queue<(GridSpot Spot, int Length)>();
-        queue.Enqueue((start, 0));
+        var queue = new Queue<(GridSpot Spot, int Level, int Length)>();
+        queue.Enqueue((start, 0, 0));
 
-        var explored = new HashSet<GridSpot>();
+        var explored = new HashSet<(GridSpot, int)>();
 
         while (queue.Count > 0)
         {
-            var (spotToExplore, lengthToExplore) = queue.Dequeue();
+            var (spotToExplore, levelToExplore, lengthToExplore) = queue.Dequeue();
 
-            if (explored.Contains(spotToExplore))
+            if (explored.Contains((spotToExplore, levelToExplore)))
             {
                 continue;
             }
 
-            explored.Add(spotToExplore);
+            explored.Add((spotToExplore, levelToExplore));
 
-
-            if (spotToExplore == end)
+            if (spotToExplore == end && (ignoreLevels || levelToExplore == 0))
             {
                 return lengthToExplore;
             }
 
             if (_portalsFromTo.TryGetValue(spotToExplore, out var otherSide))
             {
-                queue.Enqueue((otherSide, lengthToExplore + 1));
+                var outer = spotToExplore.Row == 0
+                            || spotToExplore.Column == 0
+                            || spotToExplore.Row == _map.Count - 1
+                            || spotToExplore.Column == _map[spotToExplore.Row].Length - 1;
+
+                var newLevel = outer ? levelToExplore - 1 : levelToExplore + 1;
+
+                if (ignoreLevels || newLevel >= 0)
+                {
+                    queue.Enqueue((otherSide, newLevel, lengthToExplore + 1));
+                }
             }
 
             foreach (var neighborDelta in deltas)
@@ -187,7 +193,7 @@ public sealed class Day20: BaseTestableDay
                     continue;
                 }
 
-                queue.Enqueue((neighbour, lengthToExplore + 1));
+                queue.Enqueue((neighbour, levelToExplore, lengthToExplore + 1));
             }
         }
 
@@ -196,12 +202,12 @@ public sealed class Day20: BaseTestableDay
 
     private Answer CalculatePart1Answer()
     {
-        return ShortestPath(_portals["AA"].Item1, _portals["ZZ"].Item1);
+        return ShortestPath(_portals["AA"].Item1, _portals["ZZ"].Item1, true);
     }
 
     private Answer CalculatePart2Answer()
     {
-        return -1;
+        return ShortestPath(_portals["AA"].Item1, _portals["ZZ"].Item1, false);
     }
 
     public override ValueTask<string> Solve_1() => CalculatePart1Answer();
