@@ -9,7 +9,7 @@ public class TestComputer
     [InlineData(new long[] { 1, 1, 1, 4, 99, 5, 6, 0, 99 }, 30)] // => 30,1,1,4,2,5,6,0,99
     public void ComputerProgramRunAndTestProgramZeroSpot(long[] program, long expectedOutput)
     {
-        var computer = new Computer(program.ToList(), new List<long>());
+        var computer = new Computer(program.ToList());
         computer.RunProgramToTermination();
         computer.Program[0].Should().Be(expectedOutput);
     }
@@ -39,7 +39,7 @@ public class TestComputer
     [InlineData(new long[] { 104, 1125899906842624, 99 }, new long[] { 1125899906842624 })]
     public void ComputerProgramRunWithSomeLargeNumbersAndExtraStuff(long[] program, long[] expectedOutput)
     {
-        var computer = new Computer(program.ToList(), new List<long>());
+        var computer = new Computer(program.ToList());
         computer.RunProgramToTermination().Should().Equal(expectedOutput);
     }
 
@@ -52,7 +52,7 @@ public class TestComputer
     [InlineData(new long[] { 109, 1, 209, -1, 204, -106, 99 }, new long[] { 204 })]
     public void ComputerProgramRunHailMary(long[] program, long[] expectedOutput)
     {
-        var computer = new Computer(program.ToList(), new List<long>());
+        var computer = new Computer(program.ToList());
         computer.RunProgramToTermination().Should().Equal(expectedOutput);
     }
 

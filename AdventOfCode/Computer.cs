@@ -37,6 +37,10 @@ public class Computer
     private int _inputPointer;
     private int _relativeBase;
 
+    public Computer(List<long> program) : this(program, new List<long>())
+    {
+    }
+
     public Computer(List<long> program, List<long> inputs)
     {
         this.Program = program.ToList();
@@ -99,6 +103,12 @@ public class Computer
         }
     }
 
+    public void AddAsciiCommand(string command)
+    {
+        this._inputs.AddRange(command.ToCharArray().Select(c => (long)c));
+        this._inputs.Add(10); // Newline.
+    }
+
     public List<long> RunProgramToTermination()
     {
         var outputs = new List<long>();
@@ -114,6 +124,34 @@ public class Computer
                     throw new ApplicationException("I got an input request when I shouldn't need one!");
                 case ReturnMode.Output:
                     outputs.Add(output.Value);
+                    break;
+                default:
+                    throw new ApplicationException("You shouldn't be here!");
+            }
+        }
+    }
+
+    public (ReturnMode, string) RunProgramToAsciiNewLine()
+    {
+        var outputString = "";
+
+        while (true)
+        {
+            var (returnMode, output) = this.RunProgram();
+
+            switch (returnMode)
+            {
+                case ReturnMode.Terminate:
+                    return (ReturnMode.Terminate, outputString);
+                case ReturnMode.Input:
+                    return (ReturnMode.Input, outputString);
+                case ReturnMode.Output:
+                    if (output == 10) // newline
+                    {
+                        return (ReturnMode.Output, outputString);
+                    }
+
+                    outputString += (char)output;
                     break;
                 default:
                     throw new ApplicationException("You shouldn't be here!");

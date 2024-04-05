@@ -241,9 +241,8 @@ public sealed class Day17 : BaseTestableDay
             if (returnMode == ReturnMode.Input)
             {
                 Console.WriteLine($"Inputting {inputStrings[inputStringCounter]}");
+                computer.AddAsciiCommand(inputStrings[inputStringCounter++]);
 
-                computerInputs.AddRange(inputStrings[inputStringCounter++].ToCharArray().Select(c => (long)c));
-                computerInputs.Add(10); // Newline.
                 continue; // Will crash if I'm out of inputs, which is fine.
             }
 

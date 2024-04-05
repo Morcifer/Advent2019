@@ -34,7 +34,7 @@ public sealed class Day13 : BaseTestableDay
 
     private Answer CalculatePart1Answer()
     {
-        var computer = new Computer(_input, new List<long>());
+        var computer = new Computer(_input);
         var outputs = computer.RunProgramToTermination();
 
         return outputs.Chunk(3).Count(c => (Tile)c[2] == Tile.Block);
@@ -86,7 +86,7 @@ public sealed class Day13 : BaseTestableDay
 
     private Answer CalculatePart2Answer()
     {
-        var computer = new Computer(_input, new List<long>());
+        var computer = new Computer(_input);
         var outputs = computer.RunProgramToTermination();
 
         var (board, score) = ConvertOutputToGameBoard(outputs);

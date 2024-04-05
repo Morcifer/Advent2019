@@ -29,7 +29,7 @@ public sealed class Day02 : BaseTestableDay
             program[1] = 12;
             program[2] = 2;
         }
-        var computer = new Computer(program, new List<long>());
+        var computer = new Computer(program);
         computer.RunProgramToTermination();
 
         return computer.Program[0];
@@ -48,7 +48,7 @@ public sealed class Day02 : BaseTestableDay
 
                 try
                 {
-                    var computer = new Computer(program.ToList(), new List<long>());
+                    var computer = new Computer(program.ToList());
                     computer.RunProgramToTermination();
 
                     if (computer.Program[0] == 19690720)
