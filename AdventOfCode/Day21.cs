@@ -1,5 +1,4 @@
-﻿
-namespace AdventOfCode;
+﻿namespace AdventOfCode;
 
 public sealed class Day21 : BaseTestableDay
 {
@@ -25,9 +24,22 @@ public sealed class Day21 : BaseTestableDay
     {
         var computer = new Computer(_input);
 
-        var commands = new List<string>() { "NOT A J", "WALK" };
-        var commandIndex = 0;
+        // Whenever there is a hole followed by a ground (=true), jump to hit the ground (=false).
+        var commands = new List<string>
+        {
+            "NOT C T", // T is notC
+            "AND D T", // T is whether I should jump - if C is a hole and D is the ground
+            "OR T J", // Put that in J
+            "NOT B T", // T is notB
+            "AND C T", // T is whether I should jump - if B is a hole and C is the ground
+            "OR T J", // Put that in J
+            "NOT A T", // T is notA
+            "AND B T", // T is whether I should jump - if A is a hole and B is the ground
+            "OR T J", // Put that in J
+            "WALK",
+        };
 
+        var commandIndex = 0;
 
         while (true)
         {
@@ -39,10 +51,15 @@ public sealed class Day21 : BaseTestableDay
                     Console.WriteLine(result);
                     return -1;
                 case ReturnMode.Output:
+                    if (long.TryParse(result, out var finalResult))
+                    {
+                        return finalResult;
+                    }
+
                     Console.WriteLine(result);
                     break;
                 case ReturnMode.Input:
-                    Console.WriteLine($"Inputting {commands[commandIndex]}");
+                    Console.WriteLine($"Inputting '{commands[commandIndex]}'");
                     computer.AddAsciiCommand(commands[commandIndex++]);
                     break;
             }

@@ -151,6 +151,11 @@ public class Computer
                         return (ReturnMode.Output, outputString);
                     }
 
+                    if (output > 256)
+                    {
+                        return (ReturnMode.Output, output.Value.ToString()); // I'm too lazy to do this differently. Only if it was rust.
+                    }
+
                     outputString += (char)output;
                     break;
                 default:

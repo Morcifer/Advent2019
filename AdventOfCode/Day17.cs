@@ -231,11 +231,12 @@ public sealed class Day17 : BaseTestableDay
         while (true)
         {
             round++;
-            var (returnMode, result) = computer.RunProgram();
+            var (returnMode, result) = computer.RunProgramToAsciiNewLine();
 
             if (returnMode == ReturnMode.Terminate)
             {
-                break;
+                Console.WriteLine(result);
+                return -1;
             }
 
             if (returnMode == ReturnMode.Input)
@@ -246,20 +247,12 @@ public sealed class Day17 : BaseTestableDay
                 continue; // Will crash if I'm out of inputs, which is fine.
             }
 
-            if (result.Value > 200) // Last one!
+            if (long.TryParse(result, out var finalResult))
             {
-                return result.Value;
+                return finalResult;
             }
 
-            if (result.Value == 10) // newline
-            {
-                Console.WriteLine(outputString);
-                outputString = "";
-            }
-            else
-            {
-                outputString += (char)result.Value;
-            }
+            Console.WriteLine(result);
         }
 
         return -1;
