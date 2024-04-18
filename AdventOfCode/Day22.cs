@@ -11,7 +11,7 @@ public sealed class Day22 : BaseTestableDay
 {
     private readonly List<(ShuffleOption, int)> _input;
 
-    public Day22() : this(RunMode.Real)
+    public Day22() : this(RunMode.Test)
     {
     }
 
@@ -104,23 +104,12 @@ public sealed class Day22 : BaseTestableDay
 
                 case ShuffleOption.Cut:
                     var cut = shuffle.Item2;
-
-                    if (cut < 0)
-                    {
-                        cut = -cut;
-                        currentIndex = currentIndex >= (totalCards - cut) ? currentIndex - (totalCards - cut) : currentIndex + cut;
-                    }
-                    else
-                    {
-                        currentIndex = currentIndex < cut ? (totalCards - cut) + currentIndex : currentIndex - cut;
-                    }
-
+                    currentIndex = (currentIndex - cut + totalCards) % totalCards;
                     break;
 
                 case ShuffleOption.DealWithIncrement:
                     var increment = shuffle.Item2;
                     currentIndex = currentIndex * increment % totalCards;
-
                     break;
             }
 
@@ -142,20 +131,14 @@ public sealed class Day22 : BaseTestableDay
 
     private Answer CalculatePart2Answer()
     {
-        var cardCount = RunMode == RunMode.Test ? 17 : 119315717514047;
+        var cardCount = RunMode == RunMode.Test ? 10 : 119315717514047;
         var targetCard = RunMode == RunMode.Test ? 7 : (long)2020;
-        var shuffleCount = RunMode == RunMode.Test ? 100 : 101741582076661;
+        var shuffleCount = RunMode == RunMode.Test ? 1 : 101741582076661;
 
         var targetCardShuffles = new Dictionary<long, long>();
 
         for (var shuffle = 0; shuffle < shuffleCount; shuffle++)
         {
-            if (targetCardShuffles.TryGetValue(targetCard, out var shuffleTime))
-            {
-                Console.WriteLine($"Caught a loop for target card {targetCard} which was also at shuffle {shuffleTime}, so lowering shuffle count to {shuffleCount}");
-                return targetCardShuffles[shuffleCount % shuffle];
-            }
-
             targetCardShuffles[targetCard] = shuffle;
 
             targetCard = ShuffleSingleCard(cardCount, targetCard);
