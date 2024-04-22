@@ -1,4 +1,6 @@
-﻿namespace AdventOfCode;
+﻿using System.Numerics;
+
+namespace AdventOfCode;
 
 public static class Utilities
 {
@@ -76,5 +78,11 @@ public static class Utilities
         }
 
         yield return cluster;
+    }
+
+    public static BigInteger PythonMod(BigInteger a, BigInteger b)
+    {
+        BigInteger result = a % b;
+        return result >= 0 ? result : result + b;
     }
 }

@@ -1,4 +1,6 @@
-﻿namespace AdventOfCode;
+﻿using System.Numerics;
+
+namespace AdventOfCode;
 
 public enum ShuffleOption
 {
@@ -11,7 +13,7 @@ public sealed class Day22 : BaseTestableDay
 {
     private readonly List<(ShuffleOption, int)> _input;
 
-    public Day22() : this(RunMode.Test)
+    public Day22() : this(RunMode.Real)
     {
     }
 
@@ -90,33 +92,37 @@ public sealed class Day22 : BaseTestableDay
         return currentCards;
     }
 
-    public long ShuffleSingleCard(long totalCards, long targetIndex)
+    private (BigInteger a0, BigInteger a1) GetLinearModulation(BigInteger totalCards)
     {
-        var currentIndex = targetIndex;
+        // Transformations are a0 + a1 * original_card
+        BigInteger a0 = 0;
+        BigInteger a1 = 1;
 
-        foreach (var (shuffleIndex, shuffle) in _input.Enumerate())
+        foreach (var shuffle in _input)
         {
             switch (shuffle.Item1)
             {
                 case ShuffleOption.DealIntoNewStack:
-                    currentIndex = totalCards - 1 - currentIndex;
+                    a1 *= -1;
+                    a0 += a1;
                     break;
 
                 case ShuffleOption.Cut:
                     var cut = shuffle.Item2;
-                    currentIndex = (currentIndex - cut + totalCards) % totalCards;
+                    a0 += (cut * a1);
                     break;
 
                 case ShuffleOption.DealWithIncrement:
                     var increment = shuffle.Item2;
-                    currentIndex = currentIndex * increment % totalCards;
+                    a1 *= BigInteger.ModPow(increment, totalCards - 2, totalCards);
                     break;
             }
 
-            //Console.WriteLine($"Result after {shuffleIndex}: {string.Join(" ", currentIndex)}");
+            a0 = Utilities.PythonMod(a0, totalCards);
+            a1 = Utilities.PythonMod(a1, totalCards);
         }
 
-        return currentIndex;
+        return (a0, a1);
     }
 
     private Answer CalculatePart1Answer()
@@ -131,27 +137,34 @@ public sealed class Day22 : BaseTestableDay
 
     private Answer CalculatePart2Answer()
     {
-        var cardCount = RunMode == RunMode.Test ? 10 : 119315717514047;
-        var targetCard = RunMode == RunMode.Test ? 7 : (long)2020;
-        var shuffleCount = RunMode == RunMode.Test ? 1 : 101741582076661;
+        BigInteger cardCount = RunMode == RunMode.Test ? 11 : 119315717514047;  // Needs to be prime for code to work.
+        BigInteger targetPosition = RunMode == RunMode.Test ? 7 : 2020;
+        BigInteger shuffleCount = RunMode == RunMode.Test ? 2 : 101741582076661;
 
-        var targetCardShuffles = new Dictionary<long, long>();
-
-        for (var shuffle = 0; shuffle < shuffleCount; shuffle++)
+        if (RunMode == RunMode.Test)
         {
-            targetCardShuffles[targetCard] = shuffle;
+            var cards = Enumerable.Range(0, (int)cardCount).ToList();
+            var shuffled = ShuffleDeck(cards);
 
-            targetCard = ShuffleSingleCard(cardCount, targetCard);
-            //Console.WriteLine($"Result after shuffle {shuffle}: {targetCard}");
-            if (shuffle % 100000 == 0)
+            for (var i = 1; i < shuffleCount; i++)
             {
-                Console.WriteLine($"Result after shuffle {shuffle}: {targetCard}");
+                shuffled = ShuffleDeck(shuffled);
             }
+
+            Console.WriteLine($"Result after shuffle: {string.Join(" ", shuffled)}");
+            var cardAtSpot = shuffled[(int)targetPosition];
+            Console.WriteLine($"Card at spot {targetPosition} started at spot {cardAtSpot}");
         }
 
-        return targetCard;
-    }
+        var (a0, a1) = GetLinearModulation(cardCount);
 
+        var multiplicator = BigInteger.ModPow(a1, shuffleCount, cardCount);
+
+        var offset = a0 * (1 - multiplicator) * BigInteger.ModPow(Utilities.PythonMod(1 - a1, cardCount), cardCount - 2, cardCount);
+        offset = Utilities.PythonMod(offset, cardCount);
+
+        return (long)Utilities.PythonMod(offset + multiplicator * targetPosition, cardCount);
+    }
     public override ValueTask<string> Solve_1() => CalculatePart1Answer();
 
     public override ValueTask<string> Solve_2() => CalculatePart2Answer();
