@@ -3,7 +3,7 @@
 public sealed class Day24 : BaseTestableDay
 {
     private const int GridSize = 5;
-    private readonly List<string> _input;
+    private readonly HashSet<(int Row, int Column)> _bugs;
 
     public Day24() : this(RunMode.Real)
     {
@@ -13,29 +13,46 @@ public sealed class Day24 : BaseTestableDay
     {
         RunMode = runMode;
 
-        _input = File
+        var map = File
             .ReadAllLines(InputFilePath)
             .ToList();
+
+        _bugs = new HashSet<(int Row, int Column)>();
+
+        for (var row = 0; row < GridSize; row++)
+        {
+            for (var column = 0; column < GridSize; column++)
+            {
+                if (map[row][column] == '#')
+                {
+                    _bugs.Add((row, column));
+                }
+            }
+        }
     }
 
-    private int GetSmooshedCoordinate(int row, int column)
+    private string GetBugsString()
     {
-        return row * GridSize + column;
+        return string.Join(", ", _bugs.OrderBy(t => t.Row).ThenBy(t => t.Column).Select(t => $"({t.Row}, {t.Column})"));
+    }
+
+    private int GetBiodiversityRating(int row, int column)
+    {
+        return (int)Math.Pow(2.0, row * GridSize + column);
     }
 
     private Answer CalculatePart1Answer()
     {
         var deltas = new List<(int Row, int Column)> { (0, 1), (0, -1), (1, 0), (-1, 0) };
 
-        var smooshed = string.Join("", _input);
         var history = new HashSet<string>();
 
-        while (!history.Contains(smooshed))
+        while (!history.Contains(GetBugsString()))
         {
-            history.Add(smooshed);
+            history.Add(GetBugsString());
 
-            var deadBugs = new List<int>();
-            var infestedBugs = new List<int>();
+            var deadBugs = new List<(int Row, int Column)>();
+            var infestedBugs = new List<(int Row, int Column)>();
 
             for (var row = 0; row < GridSize; row++)
             {
@@ -43,39 +60,24 @@ public sealed class Day24 : BaseTestableDay
                 {
                     var adjacentBugs = deltas
                         .Select(t => (Row: row + t.Row, Column: column + t.Column))
-                        .Where(t => 0 <= t.Row && t.Row < GridSize && 0 <= t.Column && t.Column < GridSize)
-                        .Select(t => GetSmooshedCoordinate(t.Row, t.Column))
-                        .Count(c => smooshed[c] == '#');
+                        .Count(n => _bugs.Contains((n.Row, n.Column)));
 
-                    var thisSmooshedCoordinate = GetSmooshedCoordinate(row, column);
-
-                    if (smooshed[thisSmooshedCoordinate] == '#' && adjacentBugs != 1)
+                    if (_bugs.Contains((row, column)) && adjacentBugs != 1)
                     {
-                        deadBugs.Add(thisSmooshedCoordinate);
+                        deadBugs.Add((row, column));
                     }
-                    else if (smooshed[thisSmooshedCoordinate] == '.' && 1 <= adjacentBugs && adjacentBugs <= 2)
+                    else if (!_bugs.Contains((row, column)) && 1 <= adjacentBugs && adjacentBugs <= 2)
                     {
-                        infestedBugs.Add(thisSmooshedCoordinate);
+                        infestedBugs.Add((row, column));
                     }
                 }
             }
 
-            var newSmooshed = smooshed.ToCharArray();
-
-            foreach (var dead in deadBugs)
-            {
-                newSmooshed[dead] = '.';
-            }
-
-            foreach (var infested in infestedBugs)
-            {
-                newSmooshed[infested] = '#';
-            }
-
-            smooshed = string.Join("", newSmooshed);
+            _bugs.UnionWith(infestedBugs);
+            _bugs.ExceptWith(deadBugs);
         }
 
-        return smooshed.Select((c, i) => c == '#' ? (int)Math.Pow(2.0, i) : 0).Sum();
+        return _bugs.Select(t => GetBiodiversityRating(t.Row, t.Column)).Sum();
     }
 
     private Answer CalculatePart2Answer()
