@@ -43,7 +43,19 @@ public sealed class Day24 : BaseTestableDay
 
     private Answer CalculatePart1Answer()
     {
+        var allSpots = Enumerable.Range(0, GridSize)
+            .SelectMany(row => Enumerable.Range(0, GridSize).Select(column => (Row: row, Column: column)))
+            .ToList();
+
         var deltas = new List<(int Row, int Column)> { (0, 1), (0, -1), (1, 0), (-1, 0) };
+        var allNeighbours = allSpots
+            .ToDictionary(
+                t => t,
+                t => deltas
+                    .Select(d => (Row: t.Row + d.Row, Column: t.Column + d.Column))
+                    .Where(n => 0 <= n.Row && n.Row < GridSize && 0 <= n.Column && n.Column < GridSize)
+                    .ToList()
+            );
 
         var history = new HashSet<string>();
 
@@ -54,22 +66,17 @@ public sealed class Day24 : BaseTestableDay
             var deadBugs = new List<(int Row, int Column)>();
             var infestedBugs = new List<(int Row, int Column)>();
 
-            for (var row = 0; row < GridSize; row++)
+            foreach (var spot in allSpots)
             {
-                for (var column = 0; column < GridSize; column++)
-                {
-                    var adjacentBugs = deltas
-                        .Select(t => (Row: row + t.Row, Column: column + t.Column))
-                        .Count(n => _bugs.Contains((n.Row, n.Column)));
+                var adjacentBugs = allNeighbours[spot].Count(n => _bugs.Contains(n));
 
-                    if (_bugs.Contains((row, column)) && adjacentBugs != 1)
-                    {
-                        deadBugs.Add((row, column));
-                    }
-                    else if (!_bugs.Contains((row, column)) && 1 <= adjacentBugs && adjacentBugs <= 2)
-                    {
-                        infestedBugs.Add((row, column));
-                    }
+                if (_bugs.Contains(spot) && adjacentBugs != 1)
+                {
+                    deadBugs.Add(spot);
+                }
+                else if (!_bugs.Contains(spot) && 1 <= adjacentBugs && adjacentBugs <= 2)
+                {
+                    infestedBugs.Add(spot);
                 }
             }
 
