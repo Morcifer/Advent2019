@@ -71,20 +71,17 @@ public sealed class Day25 : BaseTestableDay
             // "take escape pod", You're launched into space! Bye!
             "north",
             "east",
-            //"drop fixed point",
-            "drop dark matter",
-            "drop monolith",
-            "drop antenna",
-            //"drop astronaut ice cream",
-            "drop hologram",
-            //"drop ornament",
-            //"drop asterisk",
-            "east"
         };
 
         var commandIndex = 0;
 
         var items = new List<string>() { "fixed point", "monolith", "antenna", "astronaut ice cream", "hologram", "ornament", "dark matter", "asterisk" };
+
+        foreach (var item in items)
+        {
+            commands.Add($"drop {item}");
+        }
+
         var allSubsets = items.Subsets().ToList();
         var subsetIndex = 0;
 
