@@ -1,4 +1,6 @@
-﻿namespace AdventOfCode;
+﻿using MoreLinq.Extensions;
+
+namespace AdventOfCode;
 
 public sealed class Day25 : BaseTestableDay
 {
@@ -26,11 +28,60 @@ public sealed class Day25 : BaseTestableDay
         var commands = new List<string>()
         {
             "east",
-            //"take giant electromagnet",
-            "south"
+            "take antenna",
+            "east",
+            "east",
+            "take ornament",
+            "west",
+            "north",
+            "west",
+            "south",
+            "take hologram",
+            "north",
+            "west",
+            "take astronaut ice cream",
+            "east",
+            "east",
+            "north",
+            "take asterisk",
+            "south",
+            "south",
+            "west",
+            "north",
+            // "take giant electromagnet", Stuck
+            "south",
+            "south",
+            // "take photons", Eaten by Grue
+            "south",
+            "south",
+            "take dark matter",
+            "east",
+            // "take infinite loop", You take the infinite loop. You take the infinite loop. You take the infinite loop...
+            "west",
+            "north",
+            "west",
+            // "take molten lava", You melt
+            "north",
+            "take monolith",
+            "north",
+            // "take escape pod", You're launched into space! Bye!
+            "north",
+            "east",
+            "drop dark matter",
+            "drop monolith",
+            "drop antenna",
+            "drop astronaut ice cream",
+            "drop hologram",
+            "drop ornament",
+            "drop asterisk",
+            "east"
         };
 
         var commandIndex = 0;
+
+        var items = new List<string>() { "monolith", "antenna", "astronaut ice cream", "hologram", "ornament", "dark matter", "asterisk" };
+        var allSubsets = items.Subsets().ToList();
+        var subsetIndex = 0;
 
         while (true)
         {
@@ -50,9 +101,24 @@ public sealed class Day25 : BaseTestableDay
                     Console.WriteLine(result);
                     break;
                 case ReturnMode.Input:
-                    var command = commandIndex >= commands.Count ? "inv" : commands[commandIndex++];
+                    if (commandIndex >= commands.Count)
+                    {
+                        foreach (var item in allSubsets[subsetIndex++])
+                        {
+                            commands.Add($"drop {item}");
+                        }
 
-                    Console.WriteLine($"Inputting '{command}'");
+                        foreach (var item in allSubsets[subsetIndex])
+                        {
+                            commands.Add($"take {item}");
+                        }
+
+                        commands.Add("inv");
+                        commands.Add("east");
+                    }
+
+                    var command = commands[commandIndex++];
+                    Console.WriteLine($"Inputting 'command'");
                     computer.AddAsciiCommand(command);
                     break;
             }
