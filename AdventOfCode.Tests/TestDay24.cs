@@ -3,8 +3,8 @@ namespace AdventOfCode.Tests;
 public class TestDay24
 {
     [Theory]
-    [InlineData(typeof(Day24), RunMode.Test, "2129920", "-1")]
-    [InlineData(typeof(Day24), RunMode.Real, "28717468", "-1")]
+    [InlineData(typeof(Day24), RunMode.Test, "2129920", "99")]
+    [InlineData(typeof(Day24), RunMode.Real, "28717468", "2014")]
     public async Task Day24_Regression(Type type, RunMode runMode, string expectedPart1, string expectedPart2)
     {
         if (Activator.CreateInstance(type, runMode) is BaseTestableDay instance)
