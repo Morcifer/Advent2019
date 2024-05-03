@@ -30,8 +30,12 @@ public sealed class Day25 : BaseTestableDay
             "east",
             "take antenna",
             "east",
-            "east",
             "take ornament",
+            "north",
+            "west",
+            "take fixed point",
+            "east",
+            "south",
             "west",
             "north",
             "west",
@@ -67,19 +71,20 @@ public sealed class Day25 : BaseTestableDay
             // "take escape pod", You're launched into space! Bye!
             "north",
             "east",
+            //"drop fixed point",
             "drop dark matter",
             "drop monolith",
             "drop antenna",
-            "drop astronaut ice cream",
+            //"drop astronaut ice cream",
             "drop hologram",
-            "drop ornament",
-            "drop asterisk",
+            //"drop ornament",
+            //"drop asterisk",
             "east"
         };
 
         var commandIndex = 0;
 
-        var items = new List<string>() { "monolith", "antenna", "astronaut ice cream", "hologram", "ornament", "dark matter", "asterisk" };
+        var items = new List<string>() { "fixed point", "monolith", "antenna", "astronaut ice cream", "hologram", "ornament", "dark matter", "asterisk" };
         var allSubsets = items.Subsets().ToList();
         var subsetIndex = 0;
 
@@ -118,7 +123,7 @@ public sealed class Day25 : BaseTestableDay
                     }
 
                     var command = commands[commandIndex++];
-                    Console.WriteLine($"Inputting 'command'");
+                    Console.WriteLine($"Inputting '{command}'");
                     computer.AddAsciiCommand(command);
                     break;
             }
